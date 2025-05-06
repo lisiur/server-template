@@ -1,0 +1,2 @@
+database_url = "postgres://postgres:postgres@localhost/template"
+server_port = 4000
