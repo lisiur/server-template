@@ -2,5 +2,7 @@
 
 pub mod prelude;
 
-pub mod config;
+pub mod permission;
+pub mod role;
+pub mod setting;
 pub mod user;

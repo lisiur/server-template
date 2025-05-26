@@ -2,6 +2,9 @@
 dev:
     cargo run
 
+setup:
+    echo "DATABASE_URL=postgres://postgres:postgres@localhost/template" > .env
+
 [working-directory: 'packages']
 migrate-up:
     sea-orm-cli migrate up
@@ -16,5 +19,5 @@ migrate-fresh:
 
 [working-directory: 'packages/entity']
 generate-entity:
-    sea-orm-cli generate entity --lib --output-dir src
+    sea-orm-cli generate entity --lib --impl-active-model-behavior --output-dir pending
     

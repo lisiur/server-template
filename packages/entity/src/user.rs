@@ -9,7 +9,7 @@ pub struct Model {
     pub id: Uuid,
     pub account: String,
     pub nickname: Option<String>,
-    pub realname: Option<String>,
+    pub real_name: Option<String>,
     pub phone: Option<String>,
     pub email: Option<String>,
     pub email_verified: bool,
@@ -20,8 +20,8 @@ pub struct Model {
     pub password_digest: Option<String>,
     pub last_login: Option<String>,
     pub failed_login_attempts: i16,
-    pub created_at: Option<DateTime>,
-    pub updated_at: Option<DateTime>,
+    pub created_at: DateTime,
+    pub updated_at: DateTime,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
@@ -35,4 +35,10 @@ pub enum Gender {
     Unknown = 0,
     Male = 1,
     Female = 2,
+}
+
+impl Default for Gender {
+    fn default() -> Self {
+        Gender::Unknown
+    }
 }

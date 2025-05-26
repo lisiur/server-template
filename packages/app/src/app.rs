@@ -1,7 +1,7 @@
 use migration::{Migrator, MigratorTrait};
 use sea_orm::DatabaseConnection;
 
-use crate::result::AppResult;
+use crate::{result::AppResult, user::UserService};
 
 pub struct App {
     db_conn: DatabaseConnection,
@@ -14,5 +14,9 @@ impl App {
         let app = Self { db_conn };
 
         Ok(app)
+    }
+    
+    pub fn user_service(&self) -> UserService {
+        UserService::new(self.db_conn.clone())
     }
 }

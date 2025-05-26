@@ -1,8 +1,6 @@
-use app::user::UserService;
+use app::user::{create_user::CreateUserParams, UserService};
 use axum::{
-    Router,
-    extract::State,
-    routing::{get, post},
+    extract::State, routing::{get, post}, Json, Router
 };
 use utoipa::OpenApi;
 use uuid::Uuid;
@@ -13,38 +11,57 @@ use crate::{
     state::AppState,
 };
 
+use super::dto::CreateUserDto;
+
 #[derive(OpenApi)]
-#[openapi(paths(all_users, create_user))]
+#[openapi(paths(list_all_users, create_user))]
 pub(crate) struct ApiDoc;
 
 pub(crate) fn init() -> Router<AppState> {
     Router::new()
-        .route("/", get(all_users))
-        .route("/create", post(create_user))
+        .route("/", get(list_all_users))
+        .route("/", post(create_user))
 }
 
 #[utoipa::path(
+    operation_id = "listAllUsers",
+    description = "List all users",
     get,
     path = "",
     responses(
         (status = OK, description = "ok", body = str)
     )
 )]
-pub async fn all_users() -> ServerResult<RestResponseJson<String>> {
+// List all users
+pub async fn list_all_users() -> ServerResult<RestResponseJson<String>> {
     RestResponse::json("".to_string()).into()
 }
 
 #[utoipa::path(
+    operation_id = "createUser",
+    description = "Create user",
     post,
-    path = "/create",
+    path = "",
+    request_body = CreateUserDto,
     responses(
         (status = OK, description = "ok", body = ())
     )
 )]
-pub async fn create_user(State(state): State<AppState>) -> ServerResult<RestResponseJson<Uuid>> {
+/// Create user
+#[axum::debug_handler]
+pub async fn create_user(
+    State(state): State<AppState>,
+    Json(params): Json<CreateUserDto>,
+) -> ServerResult<RestResponseJson<Uuid>> {
     let user_service = UserService::new(state.db_conn);
 
-    let user_id = user_service.create_user().await?;
+    let user_id = user_service
+        .create_user(CreateUserParams {
+            account: "admin".to_string(),
+            password: "123456".to_string(),
+            ..Default::default()
+        })
+        .await?;
 
     Ok(RestResponse::json(user_id))
 }

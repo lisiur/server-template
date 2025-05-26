@@ -14,7 +14,7 @@ impl MigrationTrait for Migration {
                     .col(pk_uuid(User::Id))
                     .col(string(User::Account))
                     .col(string_null(User::Nickname))
-                    .col(string_null(User::Realname))
+                    .col(string_null(User::RealName))
                     .col(string_null(User::Phone))
                     .col(string_null(User::Email))
                     .col(boolean(User::EmailVerified).default(false))
@@ -25,8 +25,8 @@ impl MigrationTrait for Migration {
                     .col(string_null(User::PasswordDigest))
                     .col(string_null(User::LastLogin))
                     .col(tiny_integer(User::FailedLoginAttempts).default(0))
-                    .col(timestamp_null(User::CreatedAt).default(Expr::current_timestamp()))
-                    .col(timestamp_null(User::UpdatedAt).default(Expr::current_timestamp()))
+                    .col(timestamp(User::CreatedAt).default(Expr::current_timestamp()))
+                    .col(timestamp(User::UpdatedAt).default(Expr::current_timestamp()))
                     .to_owned(),
             )
             .await?;
@@ -64,7 +64,7 @@ enum User {
     Id,
     Account,
     Nickname,
-    Realname,
+    RealName,
     Phone,
     Email,
     EmailVerified,
