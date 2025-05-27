@@ -57,8 +57,8 @@ pub async fn create_user(
 
     let user_id = user_service
         .create_user(CreateUserParams {
-            account: "admin".to_string(),
-            password: "123456".to_string(),
+            account: params.account,
+            password: params.password,
             ..Default::default()
         })
         .await?;

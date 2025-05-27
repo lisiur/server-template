@@ -8,12 +8,13 @@ pub struct Migration;
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        TableManager::new(manager, Roles::Table)
+        TableManager::new(manager, Permissions::Table)
             .create_table(
                 Table::create()
-                    .col(pk_uuid(Roles::Id))
-                    .col(string(Roles::Name))
-                    .col(string_null(Roles::Description))
+                    .col(pk_uuid(Permissions::Id))
+                    .col(string(Permissions::Kind))
+                    .col(string(Permissions::Code).unique_key())
+                    .col(string_null(Permissions::Description))
                     .to_owned(),
             )
             .await?;
@@ -22,7 +23,7 @@ impl MigrationTrait for Migration {
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        TableManager::new(manager, Roles::Table)
+        TableManager::new(manager, Permissions::Table)
             .drop_table()
             .await?;
 
@@ -31,9 +32,10 @@ impl MigrationTrait for Migration {
 }
 
 #[derive(DeriveIden)]
-pub enum Roles {
+pub enum Permissions {
     Table,
     Id,
-    Name,
+    Kind,
+    Code,
     Description,
 }

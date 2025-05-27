@@ -3,6 +3,7 @@
         "dotenv",
         "dotenvy",
         "Iden",
+        "plpgsql",
         "utoipa"
     ]
 }
