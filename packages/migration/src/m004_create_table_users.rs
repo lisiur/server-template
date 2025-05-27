@@ -11,7 +11,7 @@ impl MigrationTrait for Migration {
         TableManager::new(manager, Users::Table)
             .create_table(
                 Table::create()
-                    .col(pk_uuid(Users::Id))
+                    .col(uuid(Users::Id))
                     .col(string(Users::Account))
                     .col(string_null(Users::Nickname))
                     .col(string_null(Users::RealName))

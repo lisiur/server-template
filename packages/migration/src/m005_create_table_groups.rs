@@ -11,7 +11,7 @@ impl MigrationTrait for Migration {
         TableManager::new(manager, Groups::Table)
             .create_table(
                 Table::create()
-                    .col(pk_uuid(Groups::Id))
+                    .col(uuid(Groups::Id))
                     .col(string(Groups::Name))
                     .col(string_null(Groups::Description))
                     .col(uuid_null(Groups::ParentId))

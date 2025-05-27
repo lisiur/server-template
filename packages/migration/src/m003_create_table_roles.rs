@@ -11,7 +11,7 @@ impl MigrationTrait for Migration {
         TableManager::new(manager, Roles::Table)
             .create_table(
                 Table::create()
-                    .col(pk_uuid(Roles::Id))
+                    .col(uuid(Roles::Id))
                     .col(string(Roles::Name))
                     .col(string_null(Roles::Description))
                     .to_owned(),

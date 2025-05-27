@@ -8,6 +8,7 @@ pub struct TableManager<'a> {
     manager: &'a SchemaManager<'a>,
     table_name: String,
     table_ref: TableRef,
+    primary_key: Vec<IndexColumn>,
 }
 
 impl<'a> TableManager<'a> {
@@ -17,27 +18,41 @@ impl<'a> TableManager<'a> {
             manager,
             table_ref: table.into_table_ref(),
             table_name,
+            primary_key: vec![Shared::Id.into_index_column()],
         }
     }
 
+    pub fn primary_key(mut self, primary_key: Vec<impl Iden + 'static>) -> Self {
+        self.primary_key = primary_key
+            .into_iter()
+            .map(|x| x.into_index_column())
+            .collect();
+        self
+    }
+
     pub async fn create_table(&self, mut stmt: TableCreateStatement) -> Result<&Self, DbErr> {
-        self.manager
-            .create_table(
-                stmt.table(self.table_ref.clone())
-                    .if_not_exists()
-                    .to_owned(),
-            )
-            .await?;
+        let mut stmt = stmt.table(self.table_ref.clone()).if_not_exists();
+        if !self.primary_key.is_empty() {
+            let mut primary_index = Index::create();
+            let mut primary_index = primary_index.name(format!("pk_{}", self.table_name));
+            for col in &self.primary_key {
+                primary_index = primary_index.col(col.clone())
+            }
+            stmt = stmt.primary_key(primary_index);
+        }
+        self.manager.create_table(stmt.to_owned()).await?;
         self.manager
             .alter_table(
                 Table::alter()
                     .table(self.table_ref.clone())
                     .add_column_if_not_exists(boolean(Shared::IsDeleted).default(false))
                     .add_column_if_not_exists(
-                        timestamp_with_time_zone(Shared::CreatedAt).default(Expr::current_timestamp()),
+                        timestamp_with_time_zone(Shared::CreatedAt)
+                            .default(Expr::current_timestamp()),
                     )
                     .add_column_if_not_exists(
-                        timestamp_with_time_zone(Shared::UpdatedAt).default(Expr::current_timestamp()),
+                        timestamp_with_time_zone(Shared::UpdatedAt)
+                            .default(Expr::current_timestamp()),
                     )
                     .to_owned(),
             )
@@ -180,6 +195,7 @@ impl<'a> TableManager<'a> {
 
 #[derive(DeriveIden)]
 pub enum Shared {
+    Id,
     IsDeleted,
     CreatedAt,
     UpdatedAt,

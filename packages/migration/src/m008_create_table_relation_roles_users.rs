@@ -1,7 +1,7 @@
 use sea_orm_migration::{prelude::*, schema::*};
 
 use crate::{
-    m003_create_table_roles::Roles, m004_create_table_users::Users, table_manager::TableManager
+    m003_create_table_roles::Roles, m004_create_table_users::Users, table_manager::TableManager,
 };
 
 #[derive(DeriveMigrationName)]
@@ -11,9 +11,9 @@ pub struct Migration;
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         TableManager::new(manager, RelationRolesUsers::Table)
+            .primary_key(vec![RelationRolesUsers::UserId, RelationRolesUsers::RoleId])
             .create_table(
                 Table::create()
-                    .col(pk_uuid(RelationRolesUsers::Id))
                     .col(uuid(RelationRolesUsers::UserId))
                     .col(uuid(RelationRolesUsers::RoleId))
                     .to_owned(),
@@ -39,7 +39,6 @@ impl MigrationTrait for Migration {
 #[derive(DeriveIden)]
 enum RelationRolesUsers {
     Table,
-    Id,
     UserId,
     RoleId,
 }

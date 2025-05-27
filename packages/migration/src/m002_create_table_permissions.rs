@@ -11,7 +11,7 @@ impl MigrationTrait for Migration {
         TableManager::new(manager, Permissions::Table)
             .create_table(
                 Table::create()
-                    .col(pk_uuid(Permissions::Id))
+                    .col(uuid(Permissions::Id))
                     .col(string(Permissions::Kind).unique_key())
                     .col(string(Permissions::Code).unique_key())
                     .col(string_null(Permissions::Description))

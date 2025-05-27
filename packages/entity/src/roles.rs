@@ -42,4 +42,35 @@ impl Related<super::relation_roles_users::Entity> for Entity {
     }
 }
 
+impl Related<super::groups::Entity> for Entity {
+    fn to() -> RelationDef {
+        super::relation_groups_roles::Relation::Groups.def()
+    }
+    fn via() -> Option<RelationDef> {
+        Some(super::relation_groups_roles::Relation::Roles.def().rev())
+    }
+}
+
+impl Related<super::permissions::Entity> for Entity {
+    fn to() -> RelationDef {
+        super::relation_permissions_roles::Relation::Permissions.def()
+    }
+    fn via() -> Option<RelationDef> {
+        Some(
+            super::relation_permissions_roles::Relation::Roles
+                .def()
+                .rev(),
+        )
+    }
+}
+
+impl Related<super::users::Entity> for Entity {
+    fn to() -> RelationDef {
+        super::relation_roles_users::Relation::Users.def()
+    }
+    fn via() -> Option<RelationDef> {
+        Some(super::relation_roles_users::Relation::Roles.def().rev())
+    }
+}
+
 impl ActiveModelBehavior for ActiveModel {}

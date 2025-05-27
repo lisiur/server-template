@@ -11,7 +11,7 @@ impl MigrationTrait for Migration {
         TableManager::new(manager, Settings::Table)
             .create_table(
                 Table::create()
-                    .col(pk_auto(Settings::Id))
+                    .col(uuid(Settings::Id))
                     .col(string(Settings::Name))
                     .col(string(Settings::Value))
                     .col(string_null(Settings::Description))

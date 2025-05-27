@@ -12,9 +12,12 @@ pub struct Migration;
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         TableManager::new(manager, RelationGroupsPermissions::Table)
+            .primary_key(vec![
+                RelationGroupsPermissions::GroupId,
+                RelationGroupsPermissions::PermissionId,
+            ])
             .create_table(
                 Table::create()
-                    .col(pk_uuid(RelationGroupsPermissions::Id))
                     .col(uuid(RelationGroupsPermissions::GroupId))
                     .col(uuid(RelationGroupsPermissions::PermissionId))
                     .to_owned(),
@@ -48,7 +51,6 @@ impl MigrationTrait for Migration {
 #[derive(DeriveIden)]
 enum RelationGroupsPermissions {
     Table,
-    Id,
     GroupId,
     PermissionId,
 }

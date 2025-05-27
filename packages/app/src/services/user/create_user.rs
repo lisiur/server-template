@@ -17,7 +17,7 @@ pub struct CreateUserParams {
 
 impl UserService {
     pub async fn create_user(&self, params: CreateUserParams) -> AppResult<Uuid> {
-        let user = users::ActiveModel {
+        let user_active_model = users::ActiveModel {
             id: ActiveValue::Set(Uuid::new_v4()),
             account: ActiveValue::Set(params.account),
             nickname: ActiveValue::NotSet,
@@ -36,8 +36,8 @@ impl UserService {
             created_at: ActiveValue::NotSet,
             updated_at: ActiveValue::NotSet,
         };
-        let user = users::Entity::insert(user).exec(&self.0).await?;
+        let result = users::Entity::insert(user_active_model).exec(&self.0).await?;
 
-        Ok(user.last_insert_id)
+        Ok(result.last_insert_id)
     }
 }
