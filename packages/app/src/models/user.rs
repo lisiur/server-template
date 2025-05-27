@@ -1,17 +1,11 @@
-use app::models::user::{Gender, User};
 use chrono::{DateTime, Utc};
+use entity::users;
 use serde::{Deserialize, Serialize};
+use strum_macros::{Display, EnumString};
 use utoipa::ToSchema;
 use uuid::Uuid;
 
-#[derive(Debug, ToSchema, Deserialize)]
-pub struct CreateUserDto {
-    pub account: String,
-    pub password: String,
-}
-
-#[derive(Debug, ToSchema, Serialize)]
-pub struct UserDto {
+pub struct User {
     pub id: Uuid,
     pub account: String,
     pub nickname: Option<String>,
@@ -25,8 +19,8 @@ pub struct UserDto {
     pub updated_at: DateTime<Utc>,
 }
 
-impl From<User> for UserDto {
-    fn from(value: User) -> Self {
+impl From<users::Model> for User {
+    fn from(value: users::Model) -> Self {
         Self {
             id: value.id,
             account: value.account,
@@ -36,9 +30,19 @@ impl From<User> for UserDto {
             email: value.email,
             email_verified: value.email_verified,
             avatar_url: value.avatar_url,
-            gender: value.gender,
+            gender: value.gender.as_str().try_into().unwrap(),
             created_at: value.created_at.into(),
             updated_at: value.updated_at.into(),
         }
     }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Display, EnumString, Default, ToSchema)]
+#[serde(rename_all = "camelCase")]
+#[strum(serialize_all = "camelCase")]
+pub enum Gender {
+    #[default]
+    Unknown,
+    Male,
+    Female,
 }

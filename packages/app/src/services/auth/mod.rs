@@ -1,9 +1,9 @@
 use sea_orm::DatabaseConnection;
-pub mod create_user;
+pub mod query_permissions;
 
-pub struct UserService(DatabaseConnection);
+pub struct AuthService(DatabaseConnection);
 
-impl UserService {
+impl AuthService {
     pub fn new(conn: DatabaseConnection) -> Self {
         Self(conn)
     }

@@ -1,8 +1,8 @@
+pub mod services;
 pub mod app;
-pub mod auth;
 pub mod error;
 pub mod result;
-pub mod user;
 pub mod utils;
+pub mod models;
 
 pub use app::App;

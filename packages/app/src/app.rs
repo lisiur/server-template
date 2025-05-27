@@ -1,7 +1,7 @@
 use migration::{Migrator, MigratorTrait};
 use sea_orm::DatabaseConnection;
 
-use crate::{result::AppResult, user::UserService};
+use crate::{result::AppResult, services::user::UserService};
 
 pub struct App {
     db_conn: DatabaseConnection,

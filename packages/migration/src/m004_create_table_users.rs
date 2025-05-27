@@ -19,7 +19,7 @@ impl MigrationTrait for Migration {
                     .col(string_null(Users::Email))
                     .col(boolean(Users::EmailVerified).default(false))
                     .col(string_null(Users::AvatarUrl))
-                    .col(tiny_integer(Users::Gender).default(0))
+                    .col(string(Users::Gender))
                     .col(date_null(Users::Birthday))
                     .col(string_null(Users::Bio))
                     .col(string_null(Users::PasswordDigest))

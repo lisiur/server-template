@@ -1,9 +1,16 @@
 {
     "cSpell.words": [
+        "chrono",
+        "codegen",
         "dotenv",
         "dotenvy",
+        "figlet",
         "Iden",
         "plpgsql",
+        "reqwest",
+        "serde",
+        "sqlx",
+        "thiserror",
         "utoipa"
     ]
 }

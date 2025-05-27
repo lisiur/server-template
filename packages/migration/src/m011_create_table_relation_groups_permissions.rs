@@ -1,7 +1,7 @@
 use sea_orm_migration::{prelude::*, schema::*};
 
 use crate::{
-    m002_create_table_permissions::Permissions, m003_create_table_roles::Roles,
+    m002_create_table_permissions::Permissions, m005_create_table_groups::Groups,
     table_manager::TableManager,
 };
 
@@ -11,21 +11,23 @@ pub struct Migration;
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        TableManager::new(manager, RelationRolesPermissions::Table)
+        TableManager::new(manager, RelationGroupsPermissions::Table)
             .create_table(
                 Table::create()
-                    .table(RelationRolesPermissions::Table)
-                    .if_not_exists()
-                    .col(pk_uuid(RelationRolesPermissions::Id))
-                    .col(uuid(RelationRolesPermissions::RoleId))
-                    .col(uuid(RelationRolesPermissions::PermissionId))
+                    .col(pk_uuid(RelationGroupsPermissions::Id))
+                    .col(uuid(RelationGroupsPermissions::GroupId))
+                    .col(uuid(RelationGroupsPermissions::PermissionId))
                     .to_owned(),
             )
             .await?
-            .create_foreign_key(RelationRolesPermissions::RoleId, Roles::Table, Roles::Id)
+            .create_foreign_key(
+                RelationGroupsPermissions::GroupId,
+                Groups::Table,
+                Groups::Id,
+            )
             .await?
             .create_foreign_key(
-                RelationRolesPermissions::PermissionId,
+                RelationGroupsPermissions::PermissionId,
                 Permissions::Table,
                 Permissions::Id,
             )
@@ -35,7 +37,7 @@ impl MigrationTrait for Migration {
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        TableManager::new(manager, RelationRolesPermissions::Table)
+        TableManager::new(manager, RelationGroupsPermissions::Table)
             .drop_table()
             .await?;
 
@@ -44,9 +46,9 @@ impl MigrationTrait for Migration {
 }
 
 #[derive(DeriveIden)]
-enum RelationRolesPermissions {
+enum RelationGroupsPermissions {
     Table,
     Id,
-    RoleId,
+    GroupId,
     PermissionId,
 }

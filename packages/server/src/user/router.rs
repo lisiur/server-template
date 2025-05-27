@@ -1,6 +1,8 @@
-use app::user::{create_user::CreateUserParams, UserService};
+use app::services::user::{UserService, create_user::CreateUserParams};
 use axum::{
-    extract::State, routing::{get, post}, Json, Router
+    Json, Router,
+    extract::State,
+    routing::{get, post},
 };
 use utoipa::OpenApi;
 use uuid::Uuid;
@@ -11,7 +13,7 @@ use crate::{
     state::AppState,
 };
 
-use super::dto::CreateUserDto;
+use super::dto::{CreateUserDto, UserDto};
 
 #[derive(OpenApi)]
 #[openapi(paths(list_all_users, create_user))]
@@ -29,12 +31,19 @@ pub(crate) fn init() -> Router<AppState> {
     get,
     path = "",
     responses(
-        (status = OK, description = "ok", body = str)
+        (status = OK, description = "ok", body = RestResponseJson<Vec<UserDto>>)
     )
 )]
-// List all users
-pub async fn list_all_users() -> ServerResult<RestResponseJson<String>> {
-    RestResponse::json("".to_string()).into()
+/// List all users
+pub async fn list_all_users(
+    State(state): State<AppState>,
+) -> ServerResult<RestResponseJson<Vec<UserDto>>> {
+    let user_service = UserService::new(state.db_conn);
+
+    let users = user_service.query_users_list().await?;
+    let users = users.into_iter().map(UserDto::from).collect();
+
+    Ok(RestResponse::json(users))
 }
 
 #[utoipa::path(
@@ -44,11 +53,10 @@ pub async fn list_all_users() -> ServerResult<RestResponseJson<String>> {
     path = "",
     request_body = CreateUserDto,
     responses(
-        (status = OK, description = "ok", body = ())
+        (status = OK, description = "ok", body = RestResponseJson<Uuid>)
     )
 )]
 /// Create user
-#[axum::debug_handler]
 pub async fn create_user(
     State(state): State<AppState>,
     Json(params): Json<CreateUserDto>,

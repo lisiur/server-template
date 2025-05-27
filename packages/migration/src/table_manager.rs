@@ -1,6 +1,6 @@
 use sea_orm_migration::{
     prelude::*,
-    schema::{boolean, timestamp},
+    schema::{boolean, timestamp_with_time_zone},
     sea_orm::ForeignKeyAction,
 };
 
@@ -34,10 +34,10 @@ impl<'a> TableManager<'a> {
                     .table(self.table_ref.clone())
                     .add_column_if_not_exists(boolean(Shared::IsDeleted).default(false))
                     .add_column_if_not_exists(
-                        timestamp(Shared::CreatedAt).default(Expr::current_timestamp()),
+                        timestamp_with_time_zone(Shared::CreatedAt).default(Expr::current_timestamp()),
                     )
                     .add_column_if_not_exists(
-                        timestamp(Shared::UpdatedAt).default(Expr::current_timestamp()),
+                        timestamp_with_time_zone(Shared::UpdatedAt).default(Expr::current_timestamp()),
                     )
                     .to_owned(),
             )
