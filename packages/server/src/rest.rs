@@ -51,3 +51,18 @@ impl RestResponse {
         RestResponseJson { data: None }
     }
 }
+
+#[derive(Serialize, ToSchema)]
+pub struct PaginatedData<T> {
+    pub data: Vec<T>,
+    pub total: u64,
+}
+
+impl<T> From<(Vec<T>, u64)> for PaginatedData<T> {
+    fn from(value: (Vec<T>, u64)) -> Self {
+        Self {
+            data: value.0,
+            total: value.1,
+        }
+    }
+}

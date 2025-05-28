@@ -12,5 +12,6 @@
         "sqlx",
         "thiserror",
         "utoipa"
-    ]
+    ],
+    "editor.formatOnSave": true
 }

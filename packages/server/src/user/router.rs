@@ -1,4 +1,7 @@
-use app::services::user::{UserService, create_user::CreateUserParams};
+use app::{
+    services::user::{UserService, create_user::CreateUserParams},
+    utils::query::SelectQuery,
+};
 use axum::{
     Json, Router,
     extract::State,
@@ -8,7 +11,7 @@ use utoipa::OpenApi;
 use uuid::Uuid;
 
 use crate::{
-    rest::{RestResponse, RestResponseJson},
+    rest::{PaginatedData, RestResponse, RestResponseJson},
     result::ServerResult,
     state::AppState,
 };
@@ -16,13 +19,14 @@ use crate::{
 use super::dto::{CreateUserDto, UserDto};
 
 #[derive(OpenApi)]
-#[openapi(paths(list_all_users, create_user))]
+#[openapi(paths(list_all_users, create_user, query_users_by_page))]
 pub(crate) struct ApiDoc;
 
 pub(crate) fn init() -> Router<AppState> {
     Router::new()
         .route("/", get(list_all_users))
         .route("/", post(create_user))
+        .route("/page", get(query_users_by_page))
 }
 
 #[utoipa::path(
@@ -44,6 +48,28 @@ pub async fn list_all_users(
     let users = users.into_iter().map(UserDto::from).collect();
 
     Ok(RestResponse::json(users))
+}
+
+#[utoipa::path(
+    operation_id = "queryUsersByPage",
+    description = "Query users by page",
+    get,
+    path = "/page",
+    responses(
+        (status = OK, description = "ok", body = RestResponseJson<PaginatedData<UserDto>>)
+    )
+)]
+/// Query users by page
+pub async fn query_users_by_page(
+    State(state): State<AppState>,
+    Json(params): Json<SelectQuery>,
+) -> ServerResult<RestResponseJson<PaginatedData<UserDto>>> {
+    let user_service = UserService::new(state.db_conn);
+
+    let (users, total) = user_service.query_users_by_page(params).await?;
+    let data = users.into_iter().map(UserDto::from).collect::<Vec<_>>();
+
+    Ok(RestResponse::json(PaginatedData { data, total }))
 }
 
 #[utoipa::path(
