@@ -9,6 +9,7 @@ use tower_cookies::CookieManagerLayer;
 use utoipa::OpenApi;
 use utoipa_scalar::{Scalar, Servable};
 
+mod dto;
 mod error;
 mod info;
 mod rest;

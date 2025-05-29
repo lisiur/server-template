@@ -1,7 +1,7 @@
 use app::models::user::{Gender, User};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use utoipa::ToSchema;
+use utoipa::{IntoParams, ToSchema};
 use uuid::Uuid;
 
 #[derive(Debug, ToSchema, Deserialize)]
@@ -41,4 +41,10 @@ impl From<User> for UserDto {
             updated_at: value.updated_at.into(),
         }
     }
+}
+
+#[derive(Debug, Clone, Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
+pub struct UserFilterDto {
+    pub account: Option<String>,
 }

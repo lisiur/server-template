@@ -1,22 +1,23 @@
 use app::{
     services::user::{UserService, create_user::CreateUserParams},
-    utils::query::SelectQuery,
+    utils::query::{FilterAtom, FilterCondition, SelectQuery},
 };
 use axum::{
     Json, Router,
-    extract::State,
+    extract::{Query, State},
     routing::{get, post},
 };
 use utoipa::OpenApi;
 use uuid::Uuid;
 
 use crate::{
+    dto::{PaginatedQuery, PaginatedQueryParams},
     rest::{PaginatedData, RestResponse, RestResponseJson},
     result::ServerResult,
     state::AppState,
 };
 
-use super::dto::{CreateUserDto, UserDto};
+use super::dto::{CreateUserDto, UserDto, UserFilterDto};
 
 #[derive(OpenApi)]
 #[openapi(paths(list_all_users, create_user, query_users_by_page))]
@@ -55,6 +56,7 @@ pub async fn list_all_users(
     description = "Query users by page",
     get,
     path = "/page",
+    params(PaginatedQueryParams, UserFilterDto),
     responses(
         (status = OK, description = "ok", body = RestResponseJson<PaginatedData<UserDto>>)
     )
@@ -62,14 +64,23 @@ pub async fn list_all_users(
 /// Query users by page
 pub async fn query_users_by_page(
     State(state): State<AppState>,
-    Json(params): Json<SelectQuery>,
+    Query(query): Query<PaginatedQuery<UserFilterDto>>,
 ) -> ServerResult<RestResponseJson<PaginatedData<UserDto>>> {
     let user_service = UserService::new(state.db_conn);
 
-    let (users, total) = user_service.query_users_by_page(params).await?;
-    let data = users.into_iter().map(UserDto::from).collect::<Vec<_>>();
+    let mut select_query = SelectQuery::default().with_cursor(query.cursor());
+    if let Some(ref account) = query.data.account {
+        if !account.is_empty() {
+            select_query.add_atom_filter(FilterAtom {
+                field: "account".to_string(),
+                condition: FilterCondition::Like(format!("%{account}%")),
+            });
+        }
+    }
+    let (users, total) = user_service.query_users_by_page(select_query).await?;
+    let records = users.into_iter().map(UserDto::from).collect::<Vec<_>>();
 
-    Ok(RestResponse::json(PaginatedData { data, total }))
+    Ok(RestResponse::json(PaginatedData { records, total }))
 }
 
 #[utoipa::path(

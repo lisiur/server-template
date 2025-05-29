@@ -54,14 +54,14 @@ impl RestResponse {
 
 #[derive(Serialize, ToSchema)]
 pub struct PaginatedData<T> {
-    pub data: Vec<T>,
-    pub total: u64,
+    pub records: Vec<T>,
+    pub total: i64,
 }
 
-impl<T> From<(Vec<T>, u64)> for PaginatedData<T> {
-    fn from(value: (Vec<T>, u64)) -> Self {
+impl<T, U: From<T>> From<(Vec<T>, i64)> for PaginatedData<U> {
+    fn from(value: (Vec<T>, i64)) -> Self {
         Self {
-            data: value.0,
+            records: value.0.into_iter().map(|item| item.into()).collect(),
             total: value.1,
         }
     }

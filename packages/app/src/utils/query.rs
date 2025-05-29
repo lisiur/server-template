@@ -6,19 +6,44 @@ use utoipa::ToSchema;
 
 use crate::result::AppResult;
 
-#[derive(Clone, Deserialize)]
+#[derive(Clone, Deserialize, Default)]
 pub struct SelectQuery {
-    pub filters: Option<Filter>,
-    pub orders: Option<Vec<Order>>,
-    pub pagination: Option<Pagination>,
+    pub filter: Option<Filter>,
+    pub order: Option<Vec<Order>>,
+    pub cursor: Option<Cursor>,
 }
 
 impl SelectQuery {
+    pub fn with_filter(mut self, filter: Filter) -> Self {
+        self.filter = Some(filter);
+        self
+    }
+
+    pub fn add_atom_filter(&mut self, atom_filter: FilterAtom) -> &mut Self {
+        if self.filter.is_none() {
+            self.filter = Some(Filter::default())
+        }
+        if let Some(filter) = &mut self.filter {
+            match filter {
+                Filter::And(filters) => {
+                    filters.push(Filter::Atom(atom_filter));
+                }
+                _ => (),
+            }
+        }
+        self
+    }
+
+    pub fn with_cursor(mut self, cursor: Cursor) -> Self {
+        self.cursor = Some(cursor);
+        self
+    }
+
     pub fn into_select_statement(self, table: impl IntoTableRef) -> SelectStatement {
         let SelectQuery {
-            filters,
-            orders,
-            pagination,
+            filter: filters,
+            order: orders,
+            cursor: pagination,
         } = self;
 
         let mut select_query = sea_query::Query::select();
@@ -51,9 +76,10 @@ impl SelectQuery {
         db: &DatabaseConnection,
         table: impl IntoTableRef,
     ) -> AppResult<Vec<T>> {
-        let stmt = db
-            .get_database_backend()
-            .build(&self.into_select_statement(table));
+        let mut select_stmt = self.into_select_statement(table);
+        select_stmt.column(sea_query::Asterisk);
+        let stmt = db.get_database_backend().build(&select_stmt);
+        dbg!(stmt.to_string());
         let result = T::find_by_statement(stmt).all(db).await?;
 
         Ok(result)
@@ -64,9 +90,9 @@ impl SelectQuery {
         db: &DatabaseConnection,
         table: impl IntoTableRef,
     ) -> AppResult<Option<T>> {
-        let stmt = db
-            .get_database_backend()
-            .build(&self.into_select_statement(table));
+        let mut select_stmt = self.into_select_statement(table);
+        select_stmt.column(sea_query::Asterisk);
+        let stmt = db.get_database_backend().build(&select_stmt);
         let result = T::find_by_statement(stmt).one(db).await?;
 
         Ok(result)
@@ -76,9 +102,9 @@ impl SelectQuery {
         self,
         db: &DatabaseConnection,
         table: impl IntoTableRef,
-    ) -> AppResult<(Vec<T>, u64)> {
+    ) -> AppResult<(Vec<T>, i64)> {
         let table_ref = table.into_table_ref();
-        let count = if let Some(filter) = &self.filters {
+        let count = if let Some(filter) = &self.filter {
             filter.clone().count(db, table_ref.clone()).await?
         } else {
             let mut select_query = sea_query::Query::select();
@@ -91,20 +117,17 @@ impl SelectQuery {
             );
             let stmt = builder.build(&select_query);
             let res = db.query_one(stmt).await?.unwrap();
-            let count = res.try_get::<u64>("", "count")?;
+            let count = res.try_get::<i64>("", "count")?;
             count
         };
-        let stmt = db
-            .get_database_backend()
-            .build(&self.into_select_statement(table_ref));
-        let result = T::find_by_statement(stmt).all(db).await?;
+        let result = self.all(db, table_ref).await?;
 
         Ok((result, count))
     }
 }
 
 #[derive(Clone, Deserialize)]
-pub struct Pagination {
+pub struct Cursor {
     pub limit: u64,
     pub offset: u64,
 }
@@ -115,6 +138,12 @@ pub enum Filter {
     Atom(FilterAtom),
     And(Vec<Filter>),
     Or(Vec<Filter>),
+}
+
+impl Default for Filter {
+    fn default() -> Self {
+        Filter::And(vec![])
+    }
 }
 
 #[derive(Clone, Deserialize)]
@@ -154,7 +183,7 @@ pub enum OrderDirection {
 }
 
 impl Filter {
-    pub async fn count(self, db: &DatabaseConnection, table: impl IntoTableRef) -> AppResult<u64> {
+    pub async fn count(self, db: &DatabaseConnection, table: impl IntoTableRef) -> AppResult<i64> {
         let mut select_query = sea_query::Query::select();
         select_query.from(table.into_table_ref());
         select_query.cond_where(self);
@@ -166,7 +195,7 @@ impl Filter {
         );
         let stmt = builder.build(&select_query);
         let res = db.query_one(stmt).await?.unwrap();
-        let count = res.try_get::<u64>("", "count")?;
+        let count = res.try_get::<i64>("", "count")?;
 
         Ok(count)
     }
