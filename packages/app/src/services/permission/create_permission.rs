@@ -1,4 +1,5 @@
 use entity::permissions;
+use entity::prelude::Permissions;
 use sea_orm::{ActiveValue, EntityTrait};
 use uuid::Uuid;
 
@@ -6,6 +7,7 @@ use crate::result::AppResult;
 
 use super::PermissionService;
 
+#[derive(Default)]
 pub struct CreatePermissionParams {
     pub code: String,
     pub kind: String,
@@ -21,9 +23,11 @@ impl PermissionService {
             description: ActiveValue::Set(params.description),
             ..Default::default()
         };
-        
-        let result = permissions::Entity::insert(permission_active_model).exec(&self.0).await?;
-        
+
+        let result = Permissions::insert(permission_active_model)
+            .exec(&self.0)
+            .await?;
+
         Ok(result.last_insert_id)
     }
 }

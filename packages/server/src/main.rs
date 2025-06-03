@@ -9,9 +9,11 @@ use tower_cookies::CookieManagerLayer;
 use utoipa::OpenApi;
 use utoipa_scalar::{Scalar, Servable};
 
+mod auth;
 mod dto;
 mod error;
 mod info;
+mod permission;
 mod rest;
 mod result;
 mod session;
@@ -43,6 +45,8 @@ async fn main() -> ServerResult<()> {
     #[openapi(
         info(description = "OpenApi Docs"),
         nest(
+            (path = "/auth", api = auth::router::ApiDoc, tags = ["Auth"]),
+            (path = "/permissions", api = permission::router::ApiDoc, tags = ["Permission"]),
             (path = "/session", api = session::router::ApiDoc, tags = ["Session"]),
             (path = "/users", api = user::router::ApiDoc, tags = ["User"]),
         )
@@ -61,6 +65,8 @@ async fn main() -> ServerResult<()> {
             get(|| async { axum::Json(ApiDoc::openapi()) }),
         )
         .merge(Scalar::with_url("/docs", ApiDoc::openapi()))
+        .nest("/auth", auth::router::init())
+        .nest("/permissions", permission::router::init())
         .nest("/session", session::router::init())
         .nest("/users", user::router::init())
         .layer(CookieManagerLayer::new())

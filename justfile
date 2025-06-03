@@ -19,5 +19,9 @@ migrate-fresh:
 
 [working-directory: 'packages/entity']
 generate-entity:
+    sea-orm-cli generate entity --lib --impl-active-model-behavior
+
+[working-directory: 'packages/entity']
+generate-entity-pending:
     sea-orm-cli generate entity --lib --impl-active-model-behavior --output-dir pending
     

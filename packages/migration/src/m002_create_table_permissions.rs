@@ -12,11 +12,13 @@ impl MigrationTrait for Migration {
             .create_table(
                 Table::create()
                     .col(uuid(Permissions::Id))
-                    .col(string(Permissions::Kind).unique_key())
+                    .col(string(Permissions::Kind))
                     .col(string(Permissions::Code).unique_key())
                     .col(string_null(Permissions::Description))
                     .to_owned(),
             )
+            .await?
+            .create_index(vec![Permissions::Kind])
             .await?;
 
         Ok(())

@@ -4,6 +4,18 @@ use utoipa::ToSchema;
 
 use crate::result::ServerResult;
 
+#[derive(ToSchema)]
+pub struct Null;
+
+impl Serialize for Null {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_none() // Serializes as `null`
+    }
+}
+
 #[derive(Serialize, ToSchema)]
 pub struct RestResponseJson<T: Serialize> {
     data: Option<T>,
@@ -47,7 +59,7 @@ impl RestResponse {
     }
 
     #[allow(dead_code)]
-    pub fn null() -> RestResponseJson<()> {
+    pub fn null() -> RestResponseJson<Null> {
         RestResponseJson { data: None }
     }
 }

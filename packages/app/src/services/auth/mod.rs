@@ -1,4 +1,5 @@
 use sea_orm::DatabaseConnection;
+pub mod assign_permissions;
 pub mod query_permissions;
 
 pub struct AuthService(DatabaseConnection);

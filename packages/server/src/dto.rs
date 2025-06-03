@@ -18,7 +18,7 @@ pub struct PaginatedQuery<T> {
 #[serde(rename_all = "camelCase")]
 #[into_params(parameter_in = Query)]
 #[allow(dead_code)]
-pub struct PaginatedQueryParams {
+pub struct PaginatedQueryDto {
     #[param(minimum = 1)]
     pub page: u64,
     #[param(minimum = 0)]

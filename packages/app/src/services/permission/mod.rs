@@ -2,7 +2,6 @@ use sea_orm::DatabaseConnection;
 pub mod create_permission;
 pub mod query_permissions;
 
-
 pub struct PermissionService(DatabaseConnection);
 
 impl PermissionService {

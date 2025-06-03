@@ -11,7 +11,7 @@ use utoipa::OpenApi;
 use uuid::Uuid;
 
 use crate::{
-    dto::{PaginatedQuery, PaginatedQueryParams},
+    dto::{PaginatedQuery, PaginatedQueryDto},
     rest::{PaginatedData, RestResponse, RestResponseJson},
     result::ServerResult,
     state::AppState,
@@ -56,7 +56,7 @@ pub async fn list_all_users(
     description = "Query users by page",
     get,
     path = "/page",
-    params(PaginatedQueryParams, UserFilterDto),
+    params(PaginatedQueryDto, UserFilterDto),
     responses(
         (status = OK, description = "ok", body = RestResponseJson<PaginatedData<UserDto>>)
     )
