@@ -12,6 +12,7 @@ use utoipa_scalar::{Scalar, Servable};
 mod auth;
 mod dto;
 mod error;
+mod group;
 mod info;
 mod permission;
 mod rest;
@@ -46,6 +47,7 @@ async fn main() -> ServerResult<()> {
         info(description = "OpenApi Docs"),
         nest(
             (path = "/auth", api = auth::router::ApiDoc, tags = ["Auth"]),
+            (path = "/groups", api = group::router::ApiDoc, tags = ["Group"]),
             (path = "/permissions", api = permission::router::ApiDoc, tags = ["Permission"]),
             (path = "/session", api = session::router::ApiDoc, tags = ["Session"]),
             (path = "/users", api = user::router::ApiDoc, tags = ["User"]),
@@ -66,6 +68,7 @@ async fn main() -> ServerResult<()> {
         )
         .merge(Scalar::with_url("/docs", ApiDoc::openapi()))
         .nest("/auth", auth::router::init())
+        .nest("/groups", group::router::init())
         .nest("/permissions", permission::router::init())
         .nest("/session", session::router::init())
         .nest("/users", user::router::init())

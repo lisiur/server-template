@@ -14,11 +14,11 @@ use crate::{
     state::AppState,
 };
 
-use super::dto::{AssignUserPermissionDto, GroupTreePermissionsDto, QueryGroupTreePermissionsDto};
+use super::dto::{AssignUserPermissionsDto, GroupTreePermissionsDto, QueryGroupTreePermissionsDto};
 
 #[derive(OpenApi)]
 #[openapi(paths(
-    assign_user_permission,
+    assign_user_permissions,
     query_user_permissions,
     query_group_tree_permissions,
     query_group_chain_permissions,
@@ -27,7 +27,7 @@ pub(crate) struct ApiDoc;
 
 pub(crate) fn init() -> Router<AppState> {
     Router::new()
-        .route("/assignUserPermission", post(assign_user_permission))
+        .route("/assignUserPermissions", post(assign_user_permissions))
         .route("/queryUserPermissions", get(query_user_permissions))
         .route(
             "/queryGroupTreePermissions",
@@ -40,19 +40,19 @@ pub(crate) fn init() -> Router<AppState> {
 }
 
 #[utoipa::path(
-    operation_id = "assignUserPermission",
+    operation_id = "assignUserPermissions",
     description = "Assign user permission",
     post,
-    path = "/assignUserPermission",
-    request_body = AssignUserPermissionDto,
+    path = "/assignUserPermissions",
+    request_body = AssignUserPermissionsDto,
     responses(
         (status = OK, description = "ok", body = RestResponseJson<Null>)
     )
 )]
 /// Assign user permission
-pub async fn assign_user_permission(
+pub async fn assign_user_permissions(
     State(state): State<AppState>,
-    Json(params): Json<AssignUserPermissionDto>,
+    Json(params): Json<AssignUserPermissionsDto>,
 ) -> ServerResult<RestResponseJson<Null>> {
     let auth_service = AuthService::new(state.db_conn);
 

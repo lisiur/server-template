@@ -1,4 +1,7 @@
-use app::{services::permission::PermissionService, utils::query::SelectQuery};
+use app::{
+    services::permission::PermissionService,
+    utils::query::{FilterAtom, FilterCondition, SelectQuery},
+};
 use axum::{
     Json, Router,
     extract::{Query, State},
@@ -43,7 +46,15 @@ pub async fn query_permissions_by_page(
 ) -> ServerResult<RestResponseJson<PaginatedData<PermissionDto>>> {
     let permission_service = PermissionService::new(state.db_conn);
 
-    let select_query = SelectQuery::default().with_cursor(query.cursor());
+    let mut select_query = SelectQuery::default().with_cursor(query.cursor());
+    if let Some(ref kind) = query.data.kind {
+        if !kind.is_empty() {
+            select_query.add_atom_filter(FilterAtom {
+                field: "kind".to_string(),
+                condition: FilterCondition::Like(format!("%{kind}%")),
+            });
+        }
+    }
 
     let (records, total) = permission_service
         .query_permissions_by_page(select_query)

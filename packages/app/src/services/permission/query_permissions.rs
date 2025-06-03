@@ -10,7 +10,7 @@ impl PermissionService {
         query: SelectQuery,
     ) -> AppResult<(Vec<Permission>, i64)> {
         let (records, count) = query
-            .all_with_count::<permissions::Model>(&self.0, permissions::Entity)
+            .all_with_count::<permissions::Model>(permissions::Entity, &self.0)
             .await?;
 
         let records = records.into_iter().map(Permission::from).collect();

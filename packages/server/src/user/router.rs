@@ -25,8 +25,8 @@ pub(crate) struct ApiDoc;
 
 pub(crate) fn init() -> Router<AppState> {
     Router::new()
-        .route("/", get(list_all_users))
-        .route("/", post(create_user))
+        .route("/list", get(list_all_users))
+        .route("/create", post(create_user))
         .route("/page", get(query_users_by_page))
 }
 
@@ -34,7 +34,7 @@ pub(crate) fn init() -> Router<AppState> {
     operation_id = "listAllUsers",
     description = "List all users",
     get,
-    path = "",
+    path = "/list",
     responses(
         (status = OK, description = "ok", body = RestResponseJson<Vec<UserDto>>)
     )
@@ -87,7 +87,7 @@ pub async fn query_users_by_page(
     operation_id = "createUser",
     description = "Create user",
     post,
-    path = "",
+    path = "/create",
     request_body = CreateUserDto,
     responses(
         (status = OK, description = "ok", body = RestResponseJson<Uuid>)

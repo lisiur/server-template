@@ -16,7 +16,7 @@ impl UserService {
 
     pub async fn query_users_by_page(&self, query: SelectQuery) -> AppResult<(Vec<User>, i64)> {
         let (users, count) = query
-            .all_with_count::<users::Model>(&self.0, users::Entity)
+            .all_with_count::<users::Model>(users::Entity, &self.0)
             .await?;
 
         let users = users.into_iter().map(User::from).collect();

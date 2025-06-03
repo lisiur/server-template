@@ -6,9 +6,21 @@ use utoipa::ToSchema;
 use entity::groups;
 use uuid::Uuid;
 
-use crate::{error::AppException, result::AppResult, services::group::GroupService};
+use crate::{
+    error::AppException, models::group::Group, result::AppResult, services::group::GroupService,
+    utils::query::SelectQuery,
+};
 
 impl GroupService {
+    pub async fn query_groups_by_page(&self, query: SelectQuery) -> AppResult<(Vec<Group>, i64)> {
+        let (groups, count) = query
+            .all_with_count::<groups::Model>(groups::Entity, &self.0)
+            .await?;
+        let groups = groups.into_iter().map(Group::from).collect();
+
+        Ok((groups, count))
+    }
+
     pub async fn query_group_tree(&self, group_id: Uuid) -> AppResult<GroupTree> {
         let groups = self.query_group_tree_models(group_id).await?;
         if groups.is_empty() {

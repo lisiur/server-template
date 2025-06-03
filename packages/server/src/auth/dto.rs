@@ -1,7 +1,7 @@
 use std::rc::Rc;
 
 use app::services::auth::{
-    assign_permissions::AssignUserPermissionParams,
+    assign_permissions::AssignUserPermissionsParams,
     query_permissions::{GroupPermissionChainNode, GroupPermissionTreeGroupNode},
 };
 use serde::{Deserialize, Serialize};
@@ -10,15 +10,15 @@ use uuid::Uuid;
 
 #[derive(ToSchema, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct AssignUserPermissionDto {
+pub struct AssignUserPermissionsDto {
     user_id: Uuid,
-    permission_id: Uuid,
+    permission_id_list: Vec<Uuid>,
 }
 
-impl From<AssignUserPermissionDto> for AssignUserPermissionParams {
-    fn from(value: AssignUserPermissionDto) -> Self {
+impl From<AssignUserPermissionsDto> for AssignUserPermissionsParams {
+    fn from(value: AssignUserPermissionsDto) -> Self {
         Self {
-            permission_id: value.permission_id,
+            permission_id_list: value.permission_id_list,
             user_id: value.user_id,
         }
     }

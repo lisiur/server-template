@@ -100,8 +100,8 @@ impl SelectQuery {
 
     pub async fn all_with_count<T: FromQueryResult>(
         self,
-        db: &DatabaseConnection,
         table: impl IntoTableRef,
+        db: &DatabaseConnection,
     ) -> AppResult<(Vec<T>, i64)> {
         let table_ref = table.into_table_ref();
         let count = if let Some(filter) = &self.filter {
