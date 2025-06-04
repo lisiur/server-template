@@ -25,7 +25,7 @@ pub(crate) struct ApiDoc;
 
 pub(crate) fn init() -> Router<AppState> {
     Router::new()
-        .route("/", post(create_permission))
+        .route("/create", post(create_permission))
         .route("/page", get(query_permissions_by_page))
 }
 
@@ -72,7 +72,7 @@ pub async fn query_permissions_by_page(
     operation_id = "createPermission",
     description = "Create permission",
     post,
-    path = "",
+    path = "/create",
     request_body = CreatePermissionDto,
     responses(
         (status = OK, description = "ok", body = RestResponseJson<Uuid>)

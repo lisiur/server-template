@@ -1,17 +1,18 @@
 {
-    "cSpell.words": [
-        "chrono",
-        "codegen",
-        "dotenv",
-        "dotenvy",
-        "figlet",
-        "Iden",
-        "plpgsql",
-        "reqwest",
-        "serde",
-        "sqlx",
-        "thiserror",
-        "utoipa"
-    ],
-    "editor.formatOnSave": true
+  "cSpell.words": [
+    "chrono",
+    "codegen",
+    "dotenv",
+    "dotenvy",
+    "figlet",
+    "Iden",
+    "plpgsql",
+    "reqwest",
+    "serde",
+    "sqlx",
+    "thiserror",
+    "utoipa",
+    "utoipauto"
+  ],
+  "editor.formatOnSave": true
 }

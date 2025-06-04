@@ -20,27 +20,27 @@ use crate::{
 use super::dto::{CreateUserDto, UserDto, UserFilterDto};
 
 #[derive(OpenApi)]
-#[openapi(paths(list_all_users, create_user, query_users_by_page))]
+#[openapi(paths(list_users, create_user, query_users_by_page))]
 pub(crate) struct ApiDoc;
 
 pub(crate) fn init() -> Router<AppState> {
     Router::new()
-        .route("/list", get(list_all_users))
-        .route("/create", post(create_user))
-        .route("/page", get(query_users_by_page))
+        .route("/listUsers", get(list_users))
+        .route("/createUser", post(create_user))
+        .route("/queryUsersByPage", get(query_users_by_page))
 }
 
 #[utoipa::path(
-    operation_id = "listAllUsers",
-    description = "List all users",
+    operation_id = "listUsers",
+    description = "List users",
     get,
-    path = "/list",
+    path = "/listUsers",
     responses(
         (status = OK, description = "ok", body = RestResponseJson<Vec<UserDto>>)
     )
 )]
 /// List all users
-pub async fn list_all_users(
+pub async fn list_users(
     State(state): State<AppState>,
 ) -> ServerResult<RestResponseJson<Vec<UserDto>>> {
     let user_service = UserService::new(state.db_conn);
@@ -55,7 +55,7 @@ pub async fn list_all_users(
     operation_id = "queryUsersByPage",
     description = "Query users by page",
     get,
-    path = "/page",
+    path = "/queryUsersByPage",
     params(PaginatedQueryDto, UserFilterDto),
     responses(
         (status = OK, description = "ok", body = RestResponseJson<PaginatedData<UserDto>>)
@@ -87,7 +87,7 @@ pub async fn query_users_by_page(
     operation_id = "createUser",
     description = "Create user",
     post,
-    path = "/create",
+    path = "/createUser",
     request_body = CreateUserDto,
     responses(
         (status = OK, description = "ok", body = RestResponseJson<Uuid>)

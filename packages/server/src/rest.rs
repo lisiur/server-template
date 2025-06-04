@@ -18,7 +18,7 @@ impl Serialize for Null {
 
 #[derive(Serialize, ToSchema)]
 pub struct RestResponseJson<T: Serialize> {
-    data: Option<T>,
+    data: T,
 }
 
 impl<T: Serialize> IntoResponse for RestResponseJson<T> {
@@ -55,12 +55,12 @@ pub struct RestResponse;
 
 impl RestResponse {
     pub fn json<T: Serialize>(data: T) -> RestResponseJson<T> {
-        RestResponseJson { data: Some(data) }
+        RestResponseJson { data }
     }
 
     #[allow(dead_code)]
     pub fn null() -> RestResponseJson<Null> {
-        RestResponseJson { data: None }
+        RestResponseJson { data: Null }
     }
 }
 

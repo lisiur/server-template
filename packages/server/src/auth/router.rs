@@ -41,7 +41,7 @@ pub(crate) fn init() -> Router<AppState> {
 
 #[utoipa::path(
     operation_id = "assignUserPermissions",
-    description = "Assign user permission",
+    description = "Assign user permissions",
     post,
     path = "/assignUserPermissions",
     request_body = AssignUserPermissionsDto,
@@ -49,7 +49,7 @@ pub(crate) fn init() -> Router<AppState> {
         (status = OK, description = "ok", body = RestResponseJson<Null>)
     )
 )]
-/// Assign user permission
+/// Assign user permissions
 pub async fn assign_user_permissions(
     State(state): State<AppState>,
     Json(params): Json<AssignUserPermissionsDto>,

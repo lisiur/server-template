@@ -1,4 +1,5 @@
 use entity::groups;
+use sea_orm::prelude::*;
 use sea_orm::{ActiveValue, EntityTrait, prelude::Uuid};
 
 use crate::result::AppResult;
@@ -11,6 +12,9 @@ pub struct CreateGroupParams {
     pub parent_id: Option<Uuid>,
     pub description: Option<String>,
 }
+
+#[derive(Debug)]
+pub struct DeleteGroupsParams(pub Vec<Uuid>);
 
 impl GroupService {
     pub async fn create_group(&self, params: CreateGroupParams) -> AppResult<Uuid> {
@@ -26,5 +30,14 @@ impl GroupService {
         let result = groups::Entity::insert(active_model).exec(&self.0).await?;
 
         Ok(result.last_insert_id)
+    }
+
+    pub async fn delete_groups(&self, params: DeleteGroupsParams) -> AppResult<()> {
+        groups::Entity::delete_many()
+            .filter(groups::Column::Id.is_in(params.0))
+            .exec(&self.0)
+            .await?;
+
+        Ok(())
     }
 }

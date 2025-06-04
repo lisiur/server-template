@@ -17,16 +17,17 @@ use super::dto::SessionDto;
 pub(crate) struct ApiDoc;
 
 pub(crate) fn init() -> Router<AppState> {
-    Router::new().route("/", get(query_session))
+    Router::new().route("/querySession", get(query_session))
 }
 
 #[utoipa::path(
     get,
-    path = "",
+    path = "/querySession",
     responses(
         (status = OK, description = "ok", body = RestResponseJson<SessionDto>)
     )
 )]
+/// Query session
 pub async fn query_session(cookies: Cookies) -> ServerResult<RestResponseJson<SessionDto>> {
     let visited = cookies
         .get("visited")

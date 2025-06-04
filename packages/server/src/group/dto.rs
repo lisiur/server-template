@@ -1,15 +1,20 @@
-use app::models::group::Group;
+use app::{models::group::Group, services::group::create_group::DeleteGroupsParams};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use utoipa::{IntoParams, ToSchema};
 use uuid::Uuid;
 
 #[derive(Debug, ToSchema, Deserialize)]
-pub struct CreateGroupDto {
+pub struct CreateGroupRequestDto {
+    /// group's parent id
     pub parent_id: Option<Uuid>,
     pub name: String,
     pub description: Option<String>,
 }
+
+#[derive(Debug, ToSchema, Serialize)]
+/// Group id
+pub struct CreateGroupResponseDto(pub Uuid);
 
 #[derive(Debug, ToSchema, Serialize)]
 pub struct GroupDto {
@@ -38,4 +43,14 @@ impl From<Group> for GroupDto {
 #[into_params(parameter_in = Query)]
 pub struct GroupFilterDto {
     pub name: Option<String>,
+}
+
+#[derive(Debug, ToSchema, Deserialize)]
+/// Group id list
+pub struct DeleteGroupsRequestDto(Vec<Uuid>);
+
+impl From<DeleteGroupsRequestDto> for DeleteGroupsParams {
+    fn from(value: DeleteGroupsRequestDto) -> Self {
+        Self(value.0)
+    }
 }
