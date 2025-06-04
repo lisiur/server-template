@@ -6,6 +6,7 @@
     "dotenvy",
     "figlet",
     "Iden",
+    "Lisiur",
     "plpgsql",
     "reqwest",
     "serde",

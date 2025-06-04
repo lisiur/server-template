@@ -6,6 +6,7 @@ use sea_orm::{Database, DatabaseConnection};
 use settings::Settings;
 use state::AppState;
 use tower_cookies::CookieManagerLayer;
+use tracing_subscriber::EnvFilter;
 use utoipa::OpenApi;
 use utoipa_scalar::{Scalar, Servable};
 
@@ -27,11 +28,26 @@ async fn main() -> ServerResult<()> {
     // Load .env
     dotenvy::dotenv().ok();
 
-    // Init logger
-    tracing_subscriber::fmt::init();
-
     // Init settings
     let setting = Settings::init()?;
+
+    // Set RUST_LOG
+    if std::env::var("RUST_LOG").is_err() {
+        if let Some(true) = setting.debug {
+            unsafe {
+                std::env::set_var("RUST_LOG", "debug");
+            }
+        } else {
+            unsafe {
+                std::env::set_var("RUST_LOG", "info");
+            }
+        }
+    }
+
+    // Init logger
+    tracing_subscriber::fmt()
+        .with_env_filter(EnvFilter::from_default_env())
+        .init();
 
     // Print info
     println!("{}", Info);

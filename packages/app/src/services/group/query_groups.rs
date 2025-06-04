@@ -71,15 +71,20 @@ impl GroupService {
         let groups = groups::Entity::find()
             .from_raw_sql(Statement::from_sql_and_values(
                 self.0.get_database_backend(),
-                r#"
-                WITH RECURSIVE group_tree AS (
-                    SELECT * FROM groups WHERE id = $1
-                    UNION ALL
-                    SELECT g.* FROM groups g
-                    JOIN group_tree gt ON g.parent_id = gt.id
-                )
-                SELECT * FROM group_tree
-            "#,
+                format!(
+                    r#"
+                        WITH RECURSIVE group_tree AS (
+                            SELECT * FROM {table} WHERE {id} = $1
+                            UNION ALL
+                            SELECT g.* FROM {table} g
+                            JOIN group_tree gt ON g.{parent_id} = gt.{id}
+                        )
+                        SELECT * FROM group_tree
+                    "#,
+                    table = entity::groups::Entity.as_str(),
+                    id = entity::groups::Column::Id.as_str(),
+                    parent_id = entity::groups::Column::ParentId.as_str(),
+                ),
                 vec![group_id.into()],
             ))
             .all(&self.0)
@@ -91,15 +96,20 @@ impl GroupService {
         let groups = groups::Entity::find()
             .from_raw_sql(Statement::from_sql_and_values(
                 self.0.get_database_backend(),
-                r#"
-                WITH RECURSIVE group_chain AS (
-                    SELECT * FROM groups WHERE id = $1
-                    UNION ALL
-                    SELECT g.* FROM groups g
-                    JOIN group_chain gc ON g.id = gc.parent_id
-                )
-                SELECT * FROM group_chain
-            "#,
+                format!(
+                    r#"
+                        WITH RECURSIVE group_chain AS (
+                            SELECT * FROM {table} WHERE {id} = $1
+                            UNION ALL
+                            SELECT g.* FROM {table} g
+                            JOIN group_chain gc ON g.{id} = gc.{parent_id}
+                        )
+                        SELECT * FROM group_chain
+                    "#,
+                    table = entity::groups::Entity.as_str(),
+                    id = entity::groups::Column::Id.as_str(),
+                    parent_id = entity::groups::Column::ParentId.as_str(),
+                ),
                 vec![group_id.into()],
             ))
             .all(&self.0)
