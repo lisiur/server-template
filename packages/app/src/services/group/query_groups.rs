@@ -7,13 +7,29 @@ use entity::{groups, relation_groups_roles, relation_groups_users};
 use uuid::Uuid;
 
 use crate::{
-    error::AppException, models::group::Group, result::AppResult, services::group::GroupService,
-    utils::query::SelectQuery,
+    error::AppException,
+    models::group::Group,
+    result::AppResult,
+    services::group::GroupService,
+    utils::query::{Cursor, FilterAtom, FilterCondition, PageableQuery, SelectQuery},
 };
 
 impl GroupService {
-    pub async fn query_groups_by_page(&self, query: SelectQuery) -> AppResult<(Vec<Group>, i64)> {
-        let (groups, count) = query
+    pub async fn query_groups_by_page<T: PageableQuery<FilterGroupsParams>>(
+        &self,
+        params: T,
+    ) -> AppResult<(Vec<Group>, i64)> {
+        let mut select_query = SelectQuery::default().with_cursor(params.cursor());
+        let filter = params.into_filter();
+        if let Some(ref name) = filter.name {
+            if !name.is_empty() {
+                select_query.add_atom_filter(FilterAtom {
+                    field: groups::Column::Name.as_str().to_string(),
+                    condition: FilterCondition::Like(format!("%{name}%")),
+                });
+            }
+        }
+        let (groups, count) = select_query
             .all_with_count::<groups::Model>(groups::Entity, &self.0)
             .await?;
         let groups = groups.into_iter().map(Group::from).collect();
@@ -136,4 +152,13 @@ pub struct GroupTreeNode {
     pub description: Option<String>,
     #[schema(no_recursion)]
     pub children: Vec<Rc<RefCell<GroupTreeNode>>>,
+}
+
+pub struct QueryGroupsByPageParams {
+    pub cursor: Cursor,
+    pub name: Option<String>,
+}
+
+pub struct FilterGroupsParams {
+    pub name: Option<String>,
 }

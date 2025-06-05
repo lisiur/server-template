@@ -7,6 +7,7 @@
     "figlet",
     "Iden",
     "Lisiur",
+    "Pageable",
     "plpgsql",
     "reqwest",
     "serde",

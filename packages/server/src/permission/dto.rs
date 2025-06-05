@@ -1,5 +1,9 @@
 use app::{
-    models::permission::Permission, services::permission::create_permission::CreatePermissionParams,
+    models::permission::Permission,
+    services::permission::{
+        create_permission::CreatePermissionParams, delete_permissions::DeletePermissionsParams,
+        query_permissions::FilterPermissionsParams,
+    },
 };
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -46,8 +50,25 @@ impl From<Permission> for PermissionDto {
     }
 }
 
+/// Permission id list
+#[derive(Debug, ToSchema, Deserialize)]
+pub struct DeletePermissionsRequestDto(Vec<Uuid>);
+
+impl From<DeletePermissionsRequestDto> for DeletePermissionsParams {
+    fn from(value: DeletePermissionsRequestDto) -> Self {
+        Self(value.0)
+    }
+}
+
+/// Permission filter params
 #[derive(Debug, Clone, Deserialize, IntoParams)]
 #[into_params(parameter_in = Query)]
-pub struct PermissionFilterDto {
+pub struct FilterPermissionsDto {
     pub kind: Option<String>,
+}
+
+impl From<FilterPermissionsDto> for FilterPermissionsParams {
+    fn from(value: FilterPermissionsDto) -> Self {
+        Self { kind: value.kind }
+    }
 }

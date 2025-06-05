@@ -18,6 +18,7 @@ mod info;
 mod permission;
 mod rest;
 mod result;
+mod role;
 mod session;
 mod settings;
 mod state;
@@ -65,6 +66,7 @@ async fn main() -> ServerResult<()> {
             (path = "/auth", api = auth::router::ApiDoc, tags = ["Auth"]),
             (path = "/groups", api = group::router::ApiDoc, tags = ["Group"]),
             (path = "/permissions", api = permission::router::ApiDoc, tags = ["Permission"]),
+            (path = "/roles", api = role::router::ApiDoc, tags = ["Role"]),
             (path = "/session", api = session::router::ApiDoc, tags = ["Session"]),
             (path = "/users", api = user::router::ApiDoc, tags = ["User"]),
         )
@@ -86,6 +88,7 @@ async fn main() -> ServerResult<()> {
         .nest("/auth", auth::router::init())
         .nest("/groups", group::router::init())
         .nest("/permissions", permission::router::init())
+        .nest("/roles", role::router::init())
         .nest("/session", session::router::init())
         .nest("/users", user::router::init())
         .layer(CookieManagerLayer::new())

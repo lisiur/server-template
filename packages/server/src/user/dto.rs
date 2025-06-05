@@ -1,4 +1,7 @@
-use app::models::user::{Gender, User};
+use app::{
+    models::user::{Gender, User},
+    services::user::{delete_users::DeleteUsersParams, query_users::FilterUsersParams},
+};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use utoipa::{IntoParams, ToSchema};
@@ -45,6 +48,24 @@ impl From<User> for UserDto {
 
 #[derive(Debug, Clone, Deserialize, IntoParams)]
 #[into_params(parameter_in = Query)]
-pub struct UserFilterDto {
+pub struct FilterUserDto {
     pub account: Option<String>,
+}
+
+impl From<FilterUserDto> for FilterUsersParams {
+    fn from(value: FilterUserDto) -> Self {
+        FilterUsersParams {
+            account: value.account,
+        }
+    }
+}
+
+/// User id list
+#[derive(Debug, ToSchema, Deserialize)]
+pub struct DeleteUsersRequestDto(Vec<Uuid>);
+
+impl From<DeleteUsersRequestDto> for DeleteUsersParams {
+    fn from(value: DeleteUsersRequestDto) -> Self {
+        Self(value.0)
+    }
 }

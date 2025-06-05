@@ -126,6 +126,36 @@ impl SelectQuery {
     }
 }
 
+pub trait PageableQuery<T> {
+    fn cursor(&self) -> Cursor;
+    fn into_filter(self) -> T;
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PaginatedQuery<T> {
+    pub page: u64,
+    pub page_size: u64,
+    #[serde(flatten)]
+    pub filter: T,
+}
+
+impl<T, U> PageableQuery<U> for PaginatedQuery<T>
+where
+    U: From<T>,
+{
+    fn cursor(&self) -> Cursor {
+        Cursor {
+            limit: self.page_size,
+            offset: (self.page - 1) * self.page_size,
+        }
+    }
+
+    fn into_filter(self) -> U {
+        self.filter.into()
+    }
+}
+
 #[derive(Clone, Deserialize)]
 pub struct Cursor {
     pub limit: u64,

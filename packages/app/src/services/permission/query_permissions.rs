@@ -5,16 +5,30 @@ use entity::{
 use sea_orm::prelude::*;
 use uuid::Uuid;
 
-use crate::{models::permission::Permission, result::AppResult, utils::query::SelectQuery};
+use crate::{
+    models::permission::Permission,
+    result::AppResult,
+    utils::query::{FilterAtom, FilterCondition, PageableQuery, SelectQuery},
+};
 
 use super::PermissionService;
 
 impl PermissionService {
-    pub async fn query_permissions_by_page(
+    pub async fn query_permissions_by_page<T: PageableQuery<FilterPermissionsParams>>(
         &self,
-        query: SelectQuery,
+        params: T,
     ) -> AppResult<(Vec<Permission>, i64)> {
-        let (records, count) = query
+        let mut select_query = SelectQuery::default().with_cursor(params.cursor());
+        let filter = params.into_filter();
+        if let Some(ref kind) = filter.kind {
+            if !kind.is_empty() {
+                select_query.add_atom_filter(FilterAtom {
+                    field: permissions::Column::Kind.as_str().to_string(),
+                    condition: FilterCondition::Like(format!("%{kind}%")),
+                });
+            }
+        }
+        let (records, count) = select_query
             .all_with_count::<permissions::Model>(permissions::Entity, &self.0)
             .await?;
 
@@ -81,4 +95,8 @@ impl PermissionService {
 
         Ok(permissions.into_iter().map(Permission::from).collect())
     }
+}
+
+pub struct FilterPermissionsParams {
+    pub kind: Option<String>,
 }

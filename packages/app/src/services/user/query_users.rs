@@ -2,7 +2,10 @@ use entity::users;
 use sea_orm::prelude::*;
 
 use crate::{
-    error::AppException, models::user::User, result::AppResult, utils::query::SelectQuery,
+    error::AppException,
+    models::user::User,
+    result::AppResult,
+    utils::query::{FilterAtom, FilterCondition, PageableQuery, SelectQuery},
 };
 
 use super::UserService;
@@ -26,8 +29,21 @@ impl UserService {
         Ok(users)
     }
 
-    pub async fn query_users_by_page(&self, query: SelectQuery) -> AppResult<(Vec<User>, i64)> {
-        let (users, count) = query
+    pub async fn query_users_by_page<T: PageableQuery<FilterUsersParams>>(
+        &self,
+        params: T,
+    ) -> AppResult<(Vec<User>, i64)> {
+        let mut select_query = SelectQuery::default().with_cursor(params.cursor());
+        let filter = params.into_filter();
+        if let Some(ref name) = filter.account {
+            if !name.is_empty() {
+                select_query.add_atom_filter(FilterAtom {
+                    field: users::Column::Account.as_str().to_string(),
+                    condition: FilterCondition::Like(format!("%{name}%")),
+                });
+            }
+        }
+        let (users, count) = select_query
             .all_with_count::<users::Model>(users::Entity, &self.0)
             .await?;
 
@@ -37,4 +53,6 @@ impl UserService {
     }
 }
 
-pub enum UserFilter {}
+pub struct FilterUsersParams {
+    pub account: Option<String>,
+}

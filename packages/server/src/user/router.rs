@@ -1,23 +1,24 @@
 use app::{
     services::user::{UserService, create_user::CreateUserParams},
-    utils::query::{FilterAtom, FilterCondition, SelectQuery},
+    utils::query::PaginatedQuery,
 };
 use axum::{
     Json, Router,
     extract::{Query, State},
-    routing::{get, post},
+    routing::{delete, get, post},
 };
 use utoipa::OpenApi;
 use uuid::Uuid;
 
 use crate::{
-    dto::{PaginatedQuery, PaginatedQueryDto},
-    rest::{PaginatedData, RestResponse, RestResponseJson},
+    dto::PaginatedQueryDto,
+    rest::{PaginatedData, RestResponse, RestResponseJson, RestResponseJsonNull},
     result::ServerResult,
     state::AppState,
+    user::dto::DeleteUsersRequestDto,
 };
 
-use super::dto::{CreateUserDto, UserDto, UserFilterDto};
+use super::dto::{CreateUserDto, FilterUserDto, UserDto};
 
 #[derive(OpenApi)]
 #[openapi(paths(list_users, create_user, query_users_by_page))]
@@ -28,6 +29,7 @@ pub(crate) fn init() -> Router<AppState> {
         .route("/listUsers", get(list_users))
         .route("/createUser", post(create_user))
         .route("/queryUsersByPage", get(query_users_by_page))
+        .route("/deleteUsers", delete(delete_users))
 }
 
 #[utoipa::path(
@@ -56,7 +58,7 @@ pub async fn list_users(
     description = "Query users by page",
     get,
     path = "/queryUsersByPage",
-    params(PaginatedQueryDto, UserFilterDto),
+    params(PaginatedQueryDto, FilterUserDto),
     responses(
         (status = OK, description = "ok", body = RestResponseJson<PaginatedData<UserDto>>)
     )
@@ -64,20 +66,11 @@ pub async fn list_users(
 /// Query users by page
 pub async fn query_users_by_page(
     State(state): State<AppState>,
-    Query(query): Query<PaginatedQuery<UserFilterDto>>,
+    Query(query): Query<PaginatedQuery<FilterUserDto>>,
 ) -> ServerResult<RestResponseJson<PaginatedData<UserDto>>> {
     let user_service = UserService::new(state.db_conn);
 
-    let mut select_query = SelectQuery::default().with_cursor(query.cursor());
-    if let Some(ref account) = query.data.account {
-        if !account.is_empty() {
-            select_query.add_atom_filter(FilterAtom {
-                field: "account".to_string(),
-                condition: FilterCondition::Like(format!("%{account}%")),
-            });
-        }
-    }
-    let (users, total) = user_service.query_users_by_page(select_query).await?;
+    let (users, total) = user_service.query_users_by_page(query).await?;
     let records = users.into_iter().map(UserDto::from).collect::<Vec<_>>();
 
     Ok(RestResponse::json(PaginatedData { records, total }))
@@ -109,4 +102,26 @@ pub async fn create_user(
         .await?;
 
     Ok(RestResponse::json(user_id))
+}
+
+/// Delete users
+#[utoipa::path(
+    operation_id = "deleteUsers",
+    description = "Delete users",
+    delete,
+    path = "/deleteUsers",
+    request_body = DeleteUsersRequestDto,
+    responses(
+        (status = OK, description = "ok", body = RestResponseJsonNull)
+    )
+)]
+pub async fn delete_users(
+    State(state): State<AppState>,
+    Json(params): Json<DeleteUsersRequestDto>,
+) -> ServerResult<RestResponseJsonNull> {
+    let user_service = UserService::new(state.db_conn);
+
+    user_service.delete_users(params.into()).await?;
+
+    Ok(RestResponse::null())
 }

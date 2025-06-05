@@ -17,6 +17,7 @@ pub enum AppError {
 
 #[derive(Debug, Serialize)]
 pub enum AppException {
+    RoleNotFound,
     UserNotFound,
     GroupNotFound,
     GroupCircleDetected,

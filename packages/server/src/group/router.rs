@@ -1,6 +1,6 @@
 use app::{
     services::group::{GroupService, create_group::CreateGroupParams},
-    utils::query::{FilterAtom, FilterCondition, SelectQuery},
+    utils::query::PaginatedQuery,
 };
 use axum::{
     Json, Router,
@@ -10,14 +10,14 @@ use axum::{
 use utoipa::OpenApi;
 
 use crate::{
-    dto::{PaginatedQuery, PaginatedQueryDto},
+    dto::PaginatedQueryDto,
     group::dto::{CreateGroupResponseDto, DeleteGroupsRequestDto, UpdateGroupRequestDto},
     rest::{Null, PaginatedData, RestResponse, RestResponseJson},
     result::ServerResult,
     state::AppState,
 };
 
-use super::dto::{CreateGroupRequestDto, GroupDto, GroupFilterDto};
+use super::dto::{CreateGroupRequestDto, FilterGroupsDto, GroupDto};
 
 #[derive(OpenApi)]
 #[openapi(paths(create_group, query_groups_by_page, delete_groups, update_group))]
@@ -37,27 +37,18 @@ pub(crate) fn init() -> Router<AppState> {
     description = "Query groups by page",
     get,
     path = "/queryGroupsByPage",
-    params(PaginatedQueryDto, GroupFilterDto),
+    params(PaginatedQueryDto, FilterGroupsDto),
     responses(
         (status = OK, description = "ok", body = RestResponseJson<PaginatedData<GroupDto>>)
     )
 )]
 pub async fn query_groups_by_page(
     State(state): State<AppState>,
-    Query(query): Query<PaginatedQuery<GroupFilterDto>>,
+    Query(query): Query<PaginatedQuery<FilterGroupsDto>>,
 ) -> ServerResult<RestResponseJson<PaginatedData<GroupDto>>> {
     let group_service = GroupService::new(state.db_conn);
 
-    let mut select_query = SelectQuery::default().with_cursor(query.cursor());
-    if let Some(ref name) = query.data.name {
-        if !name.is_empty() {
-            select_query.add_atom_filter(FilterAtom {
-                field: "name".to_string(),
-                condition: FilterCondition::Like(format!("%{name}%")),
-            });
-        }
-    }
-    let (groups, total) = group_service.query_groups_by_page(select_query).await?;
+    let (groups, total) = group_service.query_groups_by_page(query).await?;
     let records = groups.into_iter().map(GroupDto::from).collect::<Vec<_>>();
 
     Ok(RestResponse::json(PaginatedData { records, total }))

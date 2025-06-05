@@ -1,6 +1,9 @@
 use app::{
     models::group::Group,
-    services::group::{delete_groups::DeleteGroupsParams, update_group::UpdateGroupParams},
+    services::group::{
+        delete_groups::DeleteGroupsParams, query_groups::FilterGroupsParams,
+        update_group::UpdateGroupParams,
+    },
 };
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -45,8 +48,14 @@ impl From<Group> for GroupDto {
 /// Group filter params
 #[derive(Debug, Clone, Deserialize, IntoParams)]
 #[into_params(parameter_in = Query)]
-pub struct GroupFilterDto {
+pub struct FilterGroupsDto {
     pub name: Option<String>,
+}
+
+impl From<FilterGroupsDto> for FilterGroupsParams {
+    fn from(value: FilterGroupsDto) -> Self {
+        FilterGroupsParams { name: value.name }
+    }
 }
 
 /// Group id list

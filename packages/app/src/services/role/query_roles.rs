@@ -1,4 +1,7 @@
-use crate::models::role::Role;
+use crate::{
+    models::role::Role,
+    utils::query::{FilterAtom, FilterCondition, PageableQuery},
+};
 use entity::{relation_groups_roles, relation_roles_users, roles};
 use sea_orm::prelude::*;
 use uuid::Uuid;
@@ -6,8 +9,21 @@ use uuid::Uuid;
 use crate::{result::AppResult, services::role::RoleService, utils::query::SelectQuery};
 
 impl RoleService {
-    pub async fn query_roles_by_page(&self, query: SelectQuery) -> AppResult<(Vec<Role>, i64)> {
-        let (roles, count) = query
+    pub async fn query_roles_by_page<T: PageableQuery<FilterRolesParams>>(
+        &self,
+        params: T,
+    ) -> AppResult<(Vec<Role>, i64)> {
+        let mut select_query = SelectQuery::default().with_cursor(params.cursor());
+        let filter = params.into_filter();
+        if let Some(ref name) = filter.name {
+            if !name.is_empty() {
+                select_query.add_atom_filter(FilterAtom {
+                    field: roles::Column::Name.as_str().to_string(),
+                    condition: FilterCondition::Like(format!("%{name}%")),
+                });
+            }
+        }
+        let (roles, count) = select_query
             .all_with_count::<roles::Model>(roles::Entity, &self.0)
             .await?;
 
@@ -48,4 +64,8 @@ impl RoleService {
 
         Ok(roles.into_iter().map(Role::from).collect())
     }
+}
+
+pub struct FilterRolesParams {
+    pub name: Option<String>,
 }

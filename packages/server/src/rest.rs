@@ -21,6 +21,8 @@ pub struct RestResponseJson<T: Serialize> {
     data: T,
 }
 
+pub type RestResponseJsonNull = RestResponseJson<Null>;
+
 impl<T: Serialize> IntoResponse for RestResponseJson<T> {
     fn into_response(self) -> Response {
         axum::Json(self).into_response()
