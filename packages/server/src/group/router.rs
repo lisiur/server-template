@@ -5,13 +5,13 @@ use app::{
 use axum::{
     Json, Router,
     extract::{Query, State},
-    routing::{delete, get, post},
+    routing::{delete, get, patch, post},
 };
 use utoipa::OpenApi;
 
 use crate::{
     dto::{PaginatedQuery, PaginatedQueryDto},
-    group::dto::{CreateGroupResponseDto, DeleteGroupsRequestDto},
+    group::dto::{CreateGroupResponseDto, DeleteGroupsRequestDto, UpdateGroupRequestDto},
     rest::{Null, PaginatedData, RestResponse, RestResponseJson},
     result::ServerResult,
     state::AppState,
@@ -20,27 +20,28 @@ use crate::{
 use super::dto::{CreateGroupRequestDto, GroupDto, GroupFilterDto};
 
 #[derive(OpenApi)]
-#[openapi(paths(create_group, query_groups_by_page, delete_groups))]
+#[openapi(paths(create_group, query_groups_by_page, delete_groups, update_group))]
 pub(crate) struct ApiDoc;
 
 pub(crate) fn init() -> Router<AppState> {
     Router::new()
-        .route("/create", post(create_group))
-        .route("/page", get(query_groups_by_page))
-        .route("/delete", delete(delete_groups))
+        .route("/createGroup", post(create_group))
+        .route("/queryGroupsByPage", get(query_groups_by_page))
+        .route("/deleteGroups", delete(delete_groups))
+        .route("/updateGroup", patch(update_group))
 }
 
+/// Query groups by page
 #[utoipa::path(
     operation_id = "queryGroupsByPage",
     description = "Query groups by page",
     get,
-    path = "/page",
+    path = "/queryGroupsByPage",
     params(PaginatedQueryDto, GroupFilterDto),
     responses(
         (status = OK, description = "ok", body = RestResponseJson<PaginatedData<GroupDto>>)
     )
 )]
-/// Query groups by page
 pub async fn query_groups_by_page(
     State(state): State<AppState>,
     Query(query): Query<PaginatedQuery<GroupFilterDto>>,
@@ -62,17 +63,17 @@ pub async fn query_groups_by_page(
     Ok(RestResponse::json(PaginatedData { records, total }))
 }
 
+/// Create group
 #[utoipa::path(
     operation_id = "createGroup",
     description = "Create group",
     post,
-    path = "/create",
+    path = "/createGroup",
     request_body = CreateGroupRequestDto,
     responses(
         (status = OK, description = "ok", body = RestResponseJson<CreateGroupResponseDto>)
     )
 )]
-/// Create group
 pub async fn create_group(
     State(state): State<AppState>,
     Json(params): Json<CreateGroupRequestDto>,
@@ -91,22 +92,42 @@ pub async fn create_group(
     Ok(RestResponse::json(CreateGroupResponseDto(group_id)))
 }
 
+/// Delete groups
 #[utoipa::path(
     operation_id = "deleteGroups",
     description = "Delete groups",
     delete,
-    path = "/delete",
+    path = "/deleteGroups",
     request_body = DeleteGroupsRequestDto,
     responses(
         (status = OK, description = "ok", body = RestResponseJson<Null>)
     )
 )]
-/// Delete groups
 pub async fn delete_groups(
     State(state): State<AppState>,
     Json(params): Json<DeleteGroupsRequestDto>,
 ) -> ServerResult<RestResponseJson<Null>> {
     let group_service = GroupService::new(state.db_conn);
     group_service.delete_groups(params.into()).await?;
+    Ok(RestResponse::null())
+}
+
+/// Update group
+#[utoipa::path(
+    operation_id = "updateGroup",
+    description = "Update group",
+    patch,
+    path = "/updateGroup",
+    request_body = UpdateGroupRequestDto,
+    responses(
+        (status = OK, description = "ok", body = RestResponseJson<Null>)
+    )
+)]
+pub async fn update_group(
+    State(state): State<AppState>,
+    Json(params): Json<UpdateGroupRequestDto>,
+) -> ServerResult<RestResponseJson<Null>> {
+    let group_service = GroupService::new(state.db_conn);
+    group_service.update_group(params.into()).await?;
     Ok(RestResponse::null())
 }

@@ -19,6 +19,7 @@ pub enum AppError {
 pub enum AppException {
     UserNotFound,
     GroupNotFound,
+    GroupCircleDetected,
 }
 
 impl Display for AppException {

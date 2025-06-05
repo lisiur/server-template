@@ -1,29 +1,27 @@
-use entity::groups;
+use entity::roles;
 use sea_orm::{ActiveValue, EntityTrait, prelude::Uuid};
 
 use crate::result::AppResult;
 
-use super::GroupService;
+use super::RoleService;
 
 #[derive(Debug, Default)]
-pub struct CreateGroupParams {
+pub struct CreateRoleParams {
     pub name: String,
-    pub parent_id: Option<Uuid>,
     pub description: Option<String>,
 }
 
-impl GroupService {
-    pub async fn create_group(&self, params: CreateGroupParams) -> AppResult<Uuid> {
-        let active_model = groups::ActiveModel {
+impl RoleService {
+    pub async fn create_role(&self, params: CreateRoleParams) -> AppResult<Uuid> {
+        let active_model = roles::ActiveModel {
             id: ActiveValue::Set(Uuid::new_v4()),
             name: ActiveValue::Set(params.name),
-            parent_id: ActiveValue::Set(params.parent_id),
             description: ActiveValue::Set(params.description),
             is_deleted: ActiveValue::NotSet,
             created_at: ActiveValue::NotSet,
             updated_at: ActiveValue::NotSet,
         };
-        let result = groups::Entity::insert(active_model).exec(&self.0).await?;
+        let result = roles::Entity::insert(active_model).exec(&self.0).await?;
 
         Ok(result.last_insert_id)
     }
