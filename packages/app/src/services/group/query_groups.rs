@@ -3,7 +3,7 @@ use serde::Serialize;
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 use utoipa::ToSchema;
 
-use entity::groups;
+use entity::{groups, relation_groups_roles, relation_groups_users};
 use uuid::Uuid;
 
 use crate::{
@@ -46,25 +46,13 @@ impl GroupService {
         Ok(tree)
     }
 
-    pub async fn query_group_chain(&self, group_id: Uuid) -> AppResult<Vec<GroupTreeNode>> {
+    pub async fn query_group_chain(&self, group_id: Uuid) -> AppResult<Vec<Group>> {
         let groups = self.query_group_chain_models(group_id).await?;
         if groups.is_empty() {
             return Err(AppException::GroupNotFound.into());
         }
 
-        let mut group_nodes: Vec<GroupTreeNode> = Vec::new();
-
-        for group in &groups {
-            let node = GroupTreeNode {
-                id: group.id,
-                name: group.name.clone(),
-                description: group.description.clone(),
-                children: vec![],
-            };
-            group_nodes.push(node);
-        }
-
-        Ok(group_nodes)
+        Ok(groups.into_iter().map(Group::from).collect())
     }
 
     pub async fn query_group_tree_models(&self, group_id: Uuid) -> AppResult<Vec<groups::Model>> {
@@ -116,6 +104,26 @@ impl GroupService {
             .await?;
 
         Ok(groups)
+    }
+
+    pub async fn query_groups_by_user_id(&self, user_id: Uuid) -> AppResult<Vec<Group>> {
+        let groups = groups::Entity::find()
+            .inner_join(relation_groups_users::Entity)
+            .filter(relation_groups_users::Column::UserId.eq(user_id))
+            .all(&self.0)
+            .await?;
+
+        Ok(groups.into_iter().map(Group::from).collect())
+    }
+
+    pub async fn query_groups_by_role_id(&self, role_id: Uuid) -> AppResult<Vec<Group>> {
+        let groups = groups::Entity::find()
+            .inner_join(relation_groups_roles::Entity)
+            .filter(relation_groups_roles::Column::RoleId.eq(role_id))
+            .all(&self.0)
+            .await?;
+
+        Ok(groups.into_iter().map(Group::from).collect())
     }
 }
 

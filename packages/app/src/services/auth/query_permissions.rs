@@ -1,27 +1,78 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
-use entity::{permissions, relation_groups_permissions, roles, users};
+use entity::{permissions, relation_groups_permissions, roles};
 use sea_orm::prelude::*;
 use serde::Serialize;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::{
-    error::AppException, models::permission::Permission, result::AppResult,
-    services::group::GroupService,
+    error::AppException,
+    models::permission::Permission,
+    result::AppResult,
+    services::{group::GroupService, permission::PermissionService, role::RoleService},
 };
 
 use super::AuthService;
 
 impl AuthService {
     pub async fn query_user_permissions(&self, user_id: Uuid) -> AppResult<Vec<Permission>> {
-        let user = users::Entity::find_by_id(user_id).one(&self.0).await?;
-        let Some(user) = user else {
-            return Ok(vec![]);
-        };
+        let permission_service = PermissionService::new(self.0.clone());
+        let role_service = RoleService::new(self.0.clone());
+        let group_service = GroupService::new(self.0.clone());
 
-        let permissions = user.find_related(permissions::Entity).all(&self.0).await?;
-        let permissions = permissions.into_iter().map(Permission::from).collect();
+        // query user related groups
+        let mut user_related_groups = HashMap::new();
+        let user_groups = group_service.query_groups_by_user_id(user_id).await?;
+        for user_group in user_groups {
+            let groups = group_service.query_group_chain(user_group.id).await?;
+            for group in groups {
+                user_related_groups.entry(group.id).or_insert(group);
+            }
+        }
+        let user_related_groups = user_related_groups.into_values().collect::<Vec<_>>();
+        let user_related_groups_id_list =
+            user_related_groups.iter().map(|g| g.id).collect::<Vec<_>>();
+
+        // query user related roles. includes roles of user and roles of user related groups
+        let mut user_related_roles = HashMap::new();
+        let mut user_roles = role_service.query_roles_by_user_id(user_id).await?;
+        let user_related_groups_roles = role_service
+            .query_roles_by_group_id_list(user_related_groups_id_list.clone())
+            .await?;
+        user_roles.extend(user_related_groups_roles);
+        for role in user_roles {
+            user_related_roles.entry(role.id).or_insert(role);
+        }
+        let user_related_roles = user_related_roles.into_values().collect::<Vec<_>>();
+        let user_related_roles_id_list = user_related_roles
+            .iter()
+            .map(|role| role.id)
+            .collect::<Vec<_>>();
+
+        // query user related permissions.
+        // includes relations of user
+        // and relations of user related roles
+        // and relations of user related groups
+        let mut user_related_permissions = HashMap::new();
+        let mut user_permissions = permission_service
+            .query_permissions_by_user_id(user_id)
+            .await?;
+        let user_related_roles_permissions = permission_service
+            .query_permissions_by_role_id_list(user_related_roles_id_list)
+            .await?;
+        let user_related_groups_permissions = permission_service
+            .query_permissions_by_group_id_list(user_related_groups_id_list)
+            .await?;
+        user_permissions.extend(user_related_roles_permissions);
+        user_permissions.extend(user_related_groups_permissions);
+
+        for permission in user_permissions {
+            user_related_permissions
+                .entry(permission.id)
+                .or_insert(permission);
+        }
+        let permissions = user_related_permissions.into_values().collect::<Vec<_>>();
 
         Ok(permissions)
     }
@@ -36,6 +87,16 @@ impl AuthService {
         let permissions = permissions.into_iter().map(Permission::from).collect();
 
         Ok(permissions)
+    }
+
+    pub async fn query_group_permissions(&self, group_id: Uuid) -> AppResult<Vec<Permission>> {
+        let permissions = permissions::Entity::find()
+            .inner_join(relation_groups_permissions::Entity)
+            .filter(relation_groups_permissions::Column::GroupId.eq(group_id))
+            .all(&self.0)
+            .await?;
+
+        Ok(permissions.into_iter().map(Permission::from).collect())
     }
 
     pub async fn query_group_tree_permissions(

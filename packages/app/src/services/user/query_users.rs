@@ -1,11 +1,23 @@
 use entity::users;
 use sea_orm::prelude::*;
 
-use crate::{models::user::User, result::AppResult, utils::query::SelectQuery};
+use crate::{
+    error::AppException, models::user::User, result::AppResult, utils::query::SelectQuery,
+};
 
 use super::UserService;
 
 impl UserService {
+    pub async fn query_user_by_id(&self, id: Uuid) -> AppResult<User> {
+        let user = users::Entity::find_by_id(id).one(&self.0).await?;
+
+        let Some(user) = user else {
+            return Err(AppException::UserNotFound.into());
+        };
+
+        Ok(user.into())
+    }
+
     pub async fn query_users_list(&self) -> AppResult<Vec<User>> {
         let users = users::Entity::find().all(&self.0).await?;
 
