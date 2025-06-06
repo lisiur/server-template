@@ -1,3 +1,4 @@
+pub mod department;
 pub mod group;
 pub mod permission;
 pub mod role;

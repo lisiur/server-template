@@ -1,21 +1,21 @@
-use entity::groups;
+use entity::departments;
 use sea_orm::{ActiveValue::Set, IntoActiveModel, prelude::*};
 
 use crate::{error::AppException, result::AppResult};
 
-use super::GroupService;
+use super::DepartmentService;
 
 #[derive(Debug, Default)]
-pub struct UpdateGroupParams {
+pub struct UpdateDepartmentParams {
     pub id: Uuid,
     pub name: Option<String>,
     pub parent_id: Option<Uuid>,
     pub description: Option<String>,
 }
 
-impl GroupService {
-    pub async fn update_group(&self, params: UpdateGroupParams) -> AppResult<()> {
-        let UpdateGroupParams {
+impl DepartmentService {
+    pub async fn update_department(&self, params: UpdateDepartmentParams) -> AppResult<()> {
+        let UpdateDepartmentParams {
             id,
             name,
             parent_id,
@@ -23,16 +23,16 @@ impl GroupService {
         } = params;
 
         if let Some(parent_id) = parent_id {
-            let group_chains = self.query_group_chain_models(parent_id).await?;
-            if group_chains.iter().find(|x| x.id == id).is_some() {
-                // new parent is a child of current group
-                return Err(AppException::GroupCircleDetected.into());
+            let department_chains = self.query_department_chain_models(parent_id).await?;
+            if department_chains.iter().find(|x| x.id == id).is_some() {
+                // new parent is a child of current department
+                return Err(AppException::DepartmentCircleDetected.into());
             }
         }
 
-        let model = groups::Entity::find_by_id(id).one(&self.0).await?;
+        let model = departments::Entity::find_by_id(id).one(&self.0).await?;
         let Some(model) = model else {
-            return Err(AppException::GroupNotFound.into());
+            return Err(AppException::DepartmentNotFound.into());
         };
         let mut active_model = model.into_active_model();
 

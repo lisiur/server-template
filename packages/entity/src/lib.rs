@@ -2,8 +2,12 @@
 
 pub mod prelude;
 
+pub mod departments;
 pub mod groups;
 pub mod permissions;
+pub mod relation_departments_permissions;
+pub mod relation_departments_roles;
+pub mod relation_departments_users;
 pub mod relation_groups_permissions;
 pub mod relation_groups_roles;
 pub mod relation_groups_users;

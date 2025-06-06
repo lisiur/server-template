@@ -26,24 +26,27 @@ impl From<AssignUserPermissionsDto> for AssignUserPermissionsParams {
 
 #[derive(Deserialize, IntoParams)]
 #[into_params(parameter_in = Query)]
+#[serde(rename_all = "camelCase")]
 pub struct QueryUserPermissionsDto {
     pub user_id: Uuid,
 }
 
 #[derive(Deserialize, IntoParams)]
 #[into_params(parameter_in = Query)]
-pub struct QueryGroupTreePermissionsDto {
+#[serde(rename_all = "camelCase")]
+pub struct QueryGroupPermissionsDto {
     pub group_id: Uuid,
+}
+
+#[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
+#[serde(rename_all = "camelCase")]
+pub struct QueryDepartmentPermissionsDto {
+    pub department_id: Uuid,
 }
 
 #[derive(Serialize, ToSchema)]
 pub struct GroupTreePermissionsDto(pub Rc<std::cell::RefCell<GroupPermissionTreeGroupNode>>);
-
-#[derive(Deserialize, IntoParams)]
-#[into_params(parameter_in = Query)]
-pub struct QueryGroupChainPermissionsDto {
-    pub group_id: Uuid,
-}
 
 #[derive(Serialize, ToSchema)]
 pub struct GroupChainPermissionsDto(pub Vec<GroupPermissionChainNode>);

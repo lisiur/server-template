@@ -1,6 +1,5 @@
 pub use sea_orm_migration::prelude::*;
 
-mod table_manager;
 mod m000_create_table_init;
 mod m001_create_table_settings;
 mod m002_create_table_permissions;
@@ -13,6 +12,11 @@ mod m008_create_table_relation_roles_users;
 mod m009_create_table_relation_permissions_users;
 mod m010_create_table_relation_groups_roles;
 mod m011_create_table_relation_groups_permissions;
+mod m012_create_table_departments;
+mod m013_create_table_relation_departments_permissions;
+mod m014_create_table_relation_departments_roles;
+mod m015_create_table_relation_departments_users;
+mod table_manager;
 
 pub struct Migrator;
 
@@ -32,6 +36,10 @@ impl MigratorTrait for Migrator {
             Box::new(m009_create_table_relation_permissions_users::Migration),
             Box::new(m010_create_table_relation_groups_roles::Migration),
             Box::new(m011_create_table_relation_groups_permissions::Migration),
+            Box::new(m012_create_table_departments::Migration),
+            Box::new(m013_create_table_relation_departments_permissions::Migration),
+            Box::new(m014_create_table_relation_departments_roles::Migration),
+            Box::new(m015_create_table_relation_departments_users::Migration),
         ]
     }
 }

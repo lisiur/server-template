@@ -19,8 +19,10 @@ pub enum AppError {
 pub enum AppException {
     RoleNotFound,
     UserNotFound,
+    DepartmentNotFound,
     GroupNotFound,
     GroupCircleDetected,
+    DepartmentCircleDetected,
 }
 
 impl Display for AppException {

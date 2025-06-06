@@ -1,6 +1,6 @@
 use entity::{
-    permissions, relation_groups_permissions, relation_permissions_roles,
-    relation_permissions_users,
+    permissions, relation_departments_permissions, relation_groups_permissions,
+    relation_permissions_roles, relation_permissions_users,
 };
 use sea_orm::prelude::*;
 use uuid::Uuid;
@@ -57,13 +57,13 @@ impl PermissionService {
         Ok(permissions.into_iter().map(Permission::from).collect())
     }
 
-    pub async fn query_permissions_by_role_id_list(
+    pub async fn query_permissions_by_roles_id_list(
         &self,
-        role_id_list: Vec<Uuid>,
+        roles_id_list: Vec<Uuid>,
     ) -> AppResult<Vec<Permission>> {
         let permissions = permissions::Entity::find()
             .inner_join(relation_permissions_roles::Entity)
-            .filter(relation_permissions_roles::Column::RoleId.is_in(role_id_list))
+            .filter(relation_permissions_roles::Column::RoleId.is_in(roles_id_list))
             .all(&self.0)
             .await?;
 
@@ -83,13 +83,41 @@ impl PermissionService {
         Ok(permissions.into_iter().map(Permission::from).collect())
     }
 
-    pub async fn query_permissions_by_group_id_list(
+    pub async fn query_permissions_by_groups_id_list(
         &self,
-        group_id_list: Vec<Uuid>,
+        groups_id_list: Vec<Uuid>,
     ) -> AppResult<Vec<Permission>> {
         let permissions = permissions::Entity::find()
             .inner_join(relation_groups_permissions::Entity)
-            .filter(relation_groups_permissions::Column::GroupId.is_in(group_id_list))
+            .filter(relation_groups_permissions::Column::GroupId.is_in(groups_id_list))
+            .all(&self.0)
+            .await?;
+
+        Ok(permissions.into_iter().map(Permission::from).collect())
+    }
+
+    pub async fn query_permissions_by_department_id(
+        &self,
+        department_id: Uuid,
+    ) -> AppResult<Vec<Permission>> {
+        let permissions = permissions::Entity::find()
+            .inner_join(relation_departments_permissions::Entity)
+            .filter(relation_departments_permissions::Column::DepartmentId.eq(department_id))
+            .all(&self.0)
+            .await?;
+
+        Ok(permissions.into_iter().map(Permission::from).collect())
+    }
+
+    pub async fn query_permissions_by_departments_id_list(
+        &self,
+        departments_id_list: Vec<Uuid>,
+    ) -> AppResult<Vec<Permission>> {
+        let permissions = permissions::Entity::find()
+            .inner_join(relation_departments_permissions::Entity)
+            .filter(
+                relation_departments_permissions::Column::DepartmentId.is_in(departments_id_list),
+            )
             .all(&self.0)
             .await?;
 

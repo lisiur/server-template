@@ -7,35 +7,33 @@ use axum::{
 use utoipa::OpenApi;
 
 use crate::{
-    auth::dto::{GroupChainPermissionsDto, QueryGroupChainPermissionsDto, QueryUserPermissionsDto},
+    auth::dto::{QueryDepartmentPermissionsDto, QueryGroupPermissionsDto, QueryUserPermissionsDto},
     permission::dto::PermissionDto,
     rest::{Null, RestResponse, RestResponseJson},
     result::ServerResult,
     state::AppState,
 };
 
-use super::dto::{AssignUserPermissionsDto, GroupTreePermissionsDto, QueryGroupTreePermissionsDto};
+use super::dto::{AssignUserPermissionsDto, GroupTreePermissionsDto};
 
 #[derive(OpenApi)]
 #[openapi(paths(
     assign_user_permissions,
     query_user_permissions,
-    query_group_tree_permissions,
-    query_group_chain_permissions,
+    query_group_permissions,
+    query_department_permissions,
 ))]
 pub(crate) struct ApiDoc;
 
+/// Assign user permissions
 pub(crate) fn init() -> Router<AppState> {
     Router::new()
         .route("/assignUserPermissions", post(assign_user_permissions))
         .route("/queryUserPermissions", get(query_user_permissions))
+        .route("/queryGroupPermissions", get(query_group_permissions))
         .route(
-            "/queryGroupTreePermissions",
-            get(query_group_tree_permissions),
-        )
-        .route(
-            "/queryGroupChainPermissions",
-            get(query_group_chain_permissions),
+            "/queryDepartmentPermissions",
+            get(query_department_permissions),
         )
 }
 
@@ -49,7 +47,6 @@ pub(crate) fn init() -> Router<AppState> {
         (status = OK, description = "ok", body = RestResponseJson<Null>)
     )
 )]
-/// Assign user permissions
 pub async fn assign_user_permissions(
     State(state): State<AppState>,
     Json(params): Json<AssignUserPermissionsDto>,
@@ -61,6 +58,7 @@ pub async fn assign_user_permissions(
     Ok(RestResponse::null())
 }
 
+/// Query user permission
 #[utoipa::path(
     operation_id = "queryUserPermissions",
     description = "Query user permissions",
@@ -71,7 +69,6 @@ pub async fn assign_user_permissions(
         (status = OK, description = "ok", body = RestResponseJson<Vec<PermissionDto>>)
     )
 )]
-/// Query user permission
 pub async fn query_user_permissions(
     State(state): State<AppState>,
     Query(query): Query<QueryUserPermissionsDto>,
@@ -84,51 +81,56 @@ pub async fn query_user_permissions(
     Ok(RestResponse::json(res))
 }
 
+/// Query group permissions
 #[utoipa::path(
-    operation_id = "queryGroupTreePermissions",
-    description = "Query group tree permissions",
+    operation_id = "queryGroupPermissions",
+    description = "Query group permissions",
     get,
-    path = "/queryGroupTreePermissions",
-    params(QueryGroupTreePermissionsDto),
+    path = "/queryGroupPermissions",
+    params(QueryGroupPermissionsDto),
     responses(
         (status = OK, description = "ok", body = RestResponseJson<GroupTreePermissionsDto>)
     )
 )]
-/// Query group tree permissions
-pub async fn query_group_tree_permissions(
+pub async fn query_group_permissions(
     State(state): State<AppState>,
-    Query(query): Query<QueryGroupTreePermissionsDto>,
-) -> ServerResult<RestResponseJson<GroupTreePermissionsDto>> {
+    Query(query): Query<QueryGroupPermissionsDto>,
+) -> ServerResult<RestResponseJson<Vec<PermissionDto>>> {
     let auth_service = AuthService::new(state.db_conn);
 
-    let res = auth_service
-        .query_group_tree_permissions(query.group_id)
-        .await?;
-    let res = GroupTreePermissionsDto(res.0);
+    let res = auth_service.query_group_permissions(query.group_id).await?;
 
-    Ok(RestResponse::json(res))
+    Ok(RestResponse::json(
+        res.into_iter()
+            .map(PermissionDto::from)
+            .collect::<Vec<PermissionDto>>(),
+    ))
 }
 
+/// Query department permissions
 #[utoipa::path(
-    operation_id = "queryGroupChainPermissions",
-    description = "Query group chain permissions",
+    operation_id = "queryDepartmentPermissions",
+    description = "Query department permissions",
     get,
-    path = "/queryGroupChainPermissions",
-    params(QueryGroupTreePermissionsDto),
+    path = "/queryDepartmentPermissions",
+    params(QueryDepartmentPermissionsDto),
     responses(
-        (status = OK, description = "ok", body = RestResponseJson<GroupTreePermissionsDto>)
+        (status = OK, description = "ok", body = RestResponseJson<Vec<PermissionDto>>)
     )
 )]
-/// Query group chain permissions
-pub async fn query_group_chain_permissions(
+pub async fn query_department_permissions(
     State(state): State<AppState>,
-    Query(query): Query<QueryGroupChainPermissionsDto>,
-) -> ServerResult<RestResponseJson<GroupChainPermissionsDto>> {
+    Query(query): Query<QueryDepartmentPermissionsDto>,
+) -> ServerResult<RestResponseJson<Vec<PermissionDto>>> {
     let auth_service = AuthService::new(state.db_conn);
 
     let res = auth_service
-        .query_group_chain_permissions(query.group_id)
+        .query_department_permissions(query.department_id)
         .await?;
 
-    Ok(RestResponse::json(GroupChainPermissionsDto(res)))
+    Ok(RestResponse::json(
+        res.into_iter()
+            .map(PermissionDto::from)
+            .collect::<Vec<PermissionDto>>(),
+    ))
 }

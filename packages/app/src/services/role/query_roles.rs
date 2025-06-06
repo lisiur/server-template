@@ -2,7 +2,7 @@ use crate::{
     models::role::Role,
     utils::query::{FilterAtom, FilterCondition, PageableQuery},
 };
-use entity::{relation_groups_roles, relation_roles_users, roles};
+use entity::{relation_departments_roles, relation_groups_roles, relation_roles_users, roles};
 use sea_orm::prelude::*;
 use uuid::Uuid;
 
@@ -52,13 +52,36 @@ impl RoleService {
         Ok(roles.into_iter().map(Role::from).collect())
     }
 
-    pub async fn query_roles_by_group_id_list(
+    pub async fn query_roles_by_groups_id_list(
         &self,
         group_id_list: Vec<Uuid>,
     ) -> AppResult<Vec<Role>> {
         let roles = roles::Entity::find()
             .inner_join(relation_groups_roles::Entity)
             .filter(relation_groups_roles::Column::GroupId.is_in(group_id_list))
+            .all(&self.0)
+            .await?;
+
+        Ok(roles.into_iter().map(Role::from).collect())
+    }
+
+    pub async fn query_roles_by_department_id(&self, department_id: Uuid) -> AppResult<Vec<Role>> {
+        let roles = roles::Entity::find()
+            .inner_join(relation_departments_roles::Entity)
+            .filter(relation_departments_roles::Column::DepartmentId.eq(department_id))
+            .all(&self.0)
+            .await?;
+
+        Ok(roles.into_iter().map(Role::from).collect())
+    }
+
+    pub async fn query_roles_by_departments_id_list(
+        &self,
+        department_id_list: Vec<Uuid>,
+    ) -> AppResult<Vec<Role>> {
+        let roles = roles::Entity::find()
+            .inner_join(relation_departments_roles::Entity)
+            .filter(relation_departments_roles::Column::DepartmentId.is_in(department_id_list))
             .all(&self.0)
             .await?;
 

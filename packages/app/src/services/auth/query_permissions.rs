@@ -10,18 +10,23 @@ use crate::{
     error::AppException,
     models::permission::Permission,
     result::AppResult,
-    services::{group::GroupService, permission::PermissionService, role::RoleService},
+    services::{
+        department::DepartmentService, group::GroupService, permission::PermissionService,
+        role::RoleService,
+    },
 };
 
 use super::AuthService;
 
 impl AuthService {
+    /// Query user permissions(explicit and implicit) by user id.
     pub async fn query_user_permissions(&self, user_id: Uuid) -> AppResult<Vec<Permission>> {
         let permission_service = PermissionService::new(self.0.clone());
         let role_service = RoleService::new(self.0.clone());
         let group_service = GroupService::new(self.0.clone());
+        let department_service = DepartmentService::new(self.0.clone());
 
-        // query user related groups
+        // query user related groups.
         let mut user_related_groups = HashMap::new();
         let user_groups = group_service.query_groups_by_user_id(user_id).await?;
         for user_group in user_groups {
@@ -34,13 +39,26 @@ impl AuthService {
         let user_related_groups_id_list =
             user_related_groups.iter().map(|g| g.id).collect::<Vec<_>>();
 
-        // query user related roles. includes roles of user and roles of user related groups
+        // query user related departments.
+        let user_departments = department_service
+            .query_departments_by_user_id(user_id)
+            .await?;
+        let user_departments_id_list = user_departments.iter().map(|g| g.id).collect::<Vec<_>>();
+
+        // query user related roles. includes:
+        // - roles of user
+        // - roles of user related groups
+        // - roles of user departments
         let mut user_related_roles = HashMap::new();
         let mut user_roles = role_service.query_roles_by_user_id(user_id).await?;
         let user_related_groups_roles = role_service
-            .query_roles_by_group_id_list(user_related_groups_id_list.clone())
+            .query_roles_by_groups_id_list(user_related_groups_id_list.clone())
+            .await?;
+        let user_departments_roles = role_service
+            .query_roles_by_departments_id_list(user_departments_id_list.clone())
             .await?;
         user_roles.extend(user_related_groups_roles);
+        user_roles.extend(user_departments_roles);
         for role in user_roles {
             user_related_roles.entry(role.id).or_insert(role);
         }
@@ -50,22 +68,27 @@ impl AuthService {
             .map(|role| role.id)
             .collect::<Vec<_>>();
 
-        // query user related permissions.
-        // includes relations of user
-        // and relations of user related roles
-        // and relations of user related groups
+        // query user related permissions. includes:
+        // - relations of user
+        // - relations of user related roles
+        // - relations of user related groups
+        // - relations of user departments
         let mut user_related_permissions = HashMap::new();
         let mut user_permissions = permission_service
             .query_permissions_by_user_id(user_id)
             .await?;
         let user_related_roles_permissions = permission_service
-            .query_permissions_by_role_id_list(user_related_roles_id_list)
+            .query_permissions_by_roles_id_list(user_related_roles_id_list)
             .await?;
         let user_related_groups_permissions = permission_service
-            .query_permissions_by_group_id_list(user_related_groups_id_list)
+            .query_permissions_by_groups_id_list(user_related_groups_id_list)
+            .await?;
+        let user_departments_permissions = permission_service
+            .query_permissions_by_departments_id_list(user_departments_id_list)
             .await?;
         user_permissions.extend(user_related_roles_permissions);
         user_permissions.extend(user_related_groups_permissions);
+        user_permissions.extend(user_departments_permissions);
 
         for permission in user_permissions {
             user_related_permissions
@@ -77,6 +100,7 @@ impl AuthService {
         Ok(permissions)
     }
 
+    /// Query role permissions(explicit and implicit) by role id.
     pub async fn query_role_permissions(&self, role_id: Uuid) -> AppResult<Vec<Permission>> {
         let role = roles::Entity::find_by_id(role_id).one(&self.0).await?;
         let Some(role) = role else {
@@ -89,16 +113,53 @@ impl AuthService {
         Ok(permissions)
     }
 
-    pub async fn query_group_permissions(&self, group_id: Uuid) -> AppResult<Vec<Permission>> {
-        let permissions = permissions::Entity::find()
-            .inner_join(relation_groups_permissions::Entity)
-            .filter(relation_groups_permissions::Column::GroupId.eq(group_id))
-            .all(&self.0)
+    /// Query department permissions(explicit and implicit) by department id.
+    pub async fn query_department_permissions(
+        &self,
+        department_id: Uuid,
+    ) -> AppResult<Vec<Permission>> {
+        let role_service = RoleService::new(self.0.clone());
+        let permission_service = PermissionService::new(self.0.clone());
+
+        let related_roles = role_service
+            .query_roles_by_department_id(department_id)
             .await?;
+        let roles_id_list = related_roles.iter().map(|role| role.id).collect::<Vec<_>>();
+
+        let mut permissions = permission_service
+            .query_permissions_by_department_id(department_id)
+            .await?;
+        let roles_permissions = permission_service
+            .query_permissions_by_roles_id_list(roles_id_list)
+            .await?;
+        permissions.extend(roles_permissions);
 
         Ok(permissions.into_iter().map(Permission::from).collect())
     }
 
+    /// Query group permissions(explicit and implicit) by group id.
+    pub async fn query_group_permissions(&self, group_id: Uuid) -> AppResult<Vec<Permission>> {
+        let group_service = GroupService::new(self.0.clone());
+        let role_service = RoleService::new(self.0.clone());
+        let permission_service = PermissionService::new(self.0.clone());
+        let groups = group_service.query_group_chain_models(group_id).await?;
+        let groups_id_list = groups.iter().map(|group| group.id).collect::<Vec<_>>();
+        let related_roles = role_service
+            .query_roles_by_groups_id_list(groups_id_list.clone())
+            .await?;
+        let roles_id_list = related_roles.iter().map(|role| role.id).collect::<Vec<_>>();
+        let mut permissions = permission_service
+            .query_permissions_by_groups_id_list(groups_id_list)
+            .await?;
+        let roles_permissions = permission_service
+            .query_permissions_by_roles_id_list(roles_id_list)
+            .await?;
+        permissions.extend(roles_permissions);
+
+        Ok(permissions.into_iter().map(Permission::from).collect())
+    }
+
+    /// Query group tree permissions(explicit) by group id.
     pub async fn query_group_tree_permissions(
         &self,
         group_id: Uuid,
@@ -163,6 +224,7 @@ impl AuthService {
         Ok(tree)
     }
 
+    /// Query group chain permissions(explicit) by group id.
     pub async fn query_group_chain_permissions(
         &self,
         group_id: Uuid,

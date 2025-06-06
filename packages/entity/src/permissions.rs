@@ -18,12 +18,20 @@ pub struct Model {
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
+    #[sea_orm(has_many = "super::relation_departments_permissions::Entity")]
+    RelationDepartmentsPermissions,
     #[sea_orm(has_many = "super::relation_groups_permissions::Entity")]
     RelationGroupsPermissions,
     #[sea_orm(has_many = "super::relation_permissions_roles::Entity")]
     RelationPermissionsRoles,
     #[sea_orm(has_many = "super::relation_permissions_users::Entity")]
     RelationPermissionsUsers,
+}
+
+impl Related<super::relation_departments_permissions::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::RelationDepartmentsPermissions.def()
+    }
 }
 
 impl Related<super::relation_groups_permissions::Entity> for Entity {
@@ -41,6 +49,19 @@ impl Related<super::relation_permissions_roles::Entity> for Entity {
 impl Related<super::relation_permissions_users::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::RelationPermissionsUsers.def()
+    }
+}
+
+impl Related<super::departments::Entity> for Entity {
+    fn to() -> RelationDef {
+        super::relation_departments_permissions::Relation::Departments.def()
+    }
+    fn via() -> Option<RelationDef> {
+        Some(
+            super::relation_departments_permissions::Relation::Permissions
+                .def()
+                .rev(),
+        )
     }
 }
 
