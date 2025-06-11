@@ -1,19 +1,19 @@
 use app::{services::department::DepartmentService, utils::query::PaginatedQuery};
 use axum::{
-    Json, Router,
+    Extension, Json, Router,
     extract::{Query, State},
     routing::{delete, get, patch, post},
 };
+use sea_orm::DatabaseConnection;
 use utoipa::OpenApi;
 
 use crate::{
-    department::dto::{
-        CreateDepartmentResponseDto, DeleteDepartmentsRequestDto, UpdateDepartmentRequestDto,
-    },
     dto::PaginatedQueryDto,
     rest::{Null, PaginatedData, RestResponse, RestResponseJson},
     result::ServerResult,
-    state::AppState,
+    routes::department::dto::{
+        CreateDepartmentResponseDto, DeleteDepartmentsRequestDto, UpdateDepartmentRequestDto,
+    },
 };
 
 use super::dto::{CreateDepartmentRequestDto, DepartmentDto, FilterDepartmentsDto};
@@ -27,7 +27,7 @@ use super::dto::{CreateDepartmentRequestDto, DepartmentDto, FilterDepartmentsDto
 ))]
 pub(crate) struct ApiDoc;
 
-pub(crate) fn init() -> Router<AppState> {
+pub(crate) fn init() -> Router {
     Router::new()
         .route("/createDepartment", post(create_department))
         .route("/queryDepartmentsByPage", get(query_departments_by_page))
@@ -47,10 +47,10 @@ pub(crate) fn init() -> Router<AppState> {
     )
 )]
 pub async fn query_departments_by_page(
-    State(state): State<AppState>,
+    Extension(conn): Extension<DatabaseConnection>,
     Query(query): Query<PaginatedQuery<FilterDepartmentsDto>>,
 ) -> ServerResult<RestResponseJson<PaginatedData<DepartmentDto>>> {
-    let department_service = DepartmentService::new(state.db_conn);
+    let department_service = DepartmentService::new(conn);
 
     let (records, total) = department_service.query_departments_by_page(query).await?;
     let records = records
@@ -73,10 +73,10 @@ pub async fn query_departments_by_page(
     )
 )]
 pub async fn create_department(
-    State(state): State<AppState>,
+    Extension(conn): Extension<DatabaseConnection>,
     Json(params): Json<CreateDepartmentRequestDto>,
 ) -> ServerResult<RestResponseJson<CreateDepartmentResponseDto>> {
-    let department_service = DepartmentService::new(state.db_conn);
+    let department_service = DepartmentService::new(conn);
 
     let group_id = department_service.create_department(params.into()).await?;
 
@@ -95,10 +95,10 @@ pub async fn create_department(
     )
 )]
 pub async fn delete_departments(
-    State(state): State<AppState>,
+    Extension(conn): Extension<DatabaseConnection>,
     Json(params): Json<DeleteDepartmentsRequestDto>,
 ) -> ServerResult<RestResponseJson<Null>> {
-    let department_service = DepartmentService::new(state.db_conn);
+    let department_service = DepartmentService::new(conn);
     department_service.delete_departments(params.into()).await?;
     Ok(RestResponse::null())
 }
@@ -115,10 +115,10 @@ pub async fn delete_departments(
     )
 )]
 pub async fn update_department(
-    State(state): State<AppState>,
+    Extension(conn): Extension<DatabaseConnection>,
     Json(params): Json<UpdateDepartmentRequestDto>,
 ) -> ServerResult<RestResponseJson<Null>> {
-    let department_service = DepartmentService::new(state.db_conn);
+    let department_service = DepartmentService::new(conn);
     department_service.update_department(params.into()).await?;
     Ok(RestResponse::null())
 }

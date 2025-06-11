@@ -15,7 +15,7 @@ impl App {
 
         Ok(app)
     }
-    
+
     pub fn user_service(&self) -> UserService {
         UserService::new(self.db_conn.clone())
     }

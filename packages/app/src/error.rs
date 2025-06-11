@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use sea_orm::DbErr;
+use sea_orm::{DbErr, SqlxError};
 use serde::Serialize;
 
 #[derive(thiserror::Error, Debug)]
@@ -11,6 +11,9 @@ pub enum AppError {
     #[error("database error: {0}")]
     Db(#[from] DbErr),
 
+    #[error("sqlx error: {0}")]
+    Sqlx(#[from] SqlxError),
+
     #[error("{0}")]
     Anyhow(#[from] anyhow::Error),
 }
@@ -19,6 +22,8 @@ pub enum AppError {
 pub enum AppException {
     RoleNotFound,
     UserNotFound,
+    PasswordError,
+    InvalidCredentials,
     DepartmentNotFound,
     GroupNotFound,
     GroupCircleDetected,

@@ -1,9 +1,10 @@
 use app::{services::role::RoleService, utils::query::PaginatedQuery};
 use axum::{
-    Json, Router,
+    Extension, Json, Router,
     extract::{Query, State},
     routing::{delete, get, patch, post},
 };
+use sea_orm::DatabaseConnection;
 use utoipa::OpenApi;
 use uuid::Uuid;
 
@@ -11,9 +12,8 @@ use crate::{
     dto::PaginatedQueryDto,
     rest::{Null, PaginatedData, RestResponse, RestResponseJson, RestResponseJsonNull},
     result::ServerResult,
-    role::dto::{DeleteRolesRequestDto, UpdateRoleRequestDto},
-    state::AppState,
-    user::dto::DeleteUsersRequestDto,
+    routes::role::dto::{DeleteRolesRequestDto, UpdateRoleRequestDto},
+    routes::user::dto::DeleteUsersRequestDto,
 };
 
 use super::dto::{CreateRoleRequestDto, RoleDto, RoleFilterDto};
@@ -22,7 +22,7 @@ use super::dto::{CreateRoleRequestDto, RoleDto, RoleFilterDto};
 #[openapi(paths(query_roles_by_page, create_role, delete_roles, update_role))]
 pub(crate) struct ApiDoc;
 
-pub(crate) fn init() -> Router<AppState> {
+pub(crate) fn init() -> Router {
     Router::new()
         .route("/queryRolesByPage", get(query_roles_by_page))
         .route("/createRole", post(create_role))
@@ -42,10 +42,10 @@ pub(crate) fn init() -> Router<AppState> {
     )
 )]
 pub async fn query_roles_by_page(
-    State(state): State<AppState>,
+    Extension(conn): Extension<DatabaseConnection>,
     Query(query): Query<PaginatedQuery<RoleFilterDto>>,
 ) -> ServerResult<RestResponseJson<PaginatedData<RoleDto>>> {
-    let role_service = RoleService::new(state.db_conn);
+    let role_service = RoleService::new(conn);
 
     let (records, total) = role_service.query_roles_by_page(query).await?;
     let records = records.into_iter().map(RoleDto::from).collect::<Vec<_>>();
@@ -65,10 +65,10 @@ pub async fn query_roles_by_page(
     )
 )]
 pub async fn create_role(
-    State(state): State<AppState>,
+    Extension(conn): Extension<DatabaseConnection>,
     Json(params): Json<CreateRoleRequestDto>,
 ) -> ServerResult<RestResponseJson<Uuid>> {
-    let role_service = RoleService::new(state.db_conn);
+    let role_service = RoleService::new(conn);
 
     let id = role_service.create_role(params.into()).await?;
 
@@ -87,10 +87,10 @@ pub async fn create_role(
     )
 )]
 pub async fn delete_roles(
-    State(state): State<AppState>,
+    Extension(conn): Extension<DatabaseConnection>,
     Json(params): Json<DeleteRolesRequestDto>,
 ) -> ServerResult<RestResponseJsonNull> {
-    let role_service = RoleService::new(state.db_conn);
+    let role_service = RoleService::new(conn);
 
     role_service.delete_roles(params.into()).await?;
 
@@ -109,10 +109,10 @@ pub async fn delete_roles(
     )
 )]
 pub async fn update_role(
-    State(state): State<AppState>,
+    Extension(conn): Extension<DatabaseConnection>,
     Json(params): Json<UpdateRoleRequestDto>,
 ) -> ServerResult<RestResponseJson<Null>> {
-    let role_service = RoleService::new(state.db_conn);
+    let role_service = RoleService::new(conn);
     role_service.update_role(params.into()).await?;
     Ok(RestResponse::null())
 }

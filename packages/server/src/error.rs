@@ -3,7 +3,7 @@ use std::fmt::Display;
 use app::error::AppError;
 use axum::response::{IntoResponse, Response};
 use http::StatusCode;
-use sea_orm::DbErr;
+use sea_orm::{DbErr, SqlxError};
 use thiserror::Error;
 
 use crate::{rest::RestResponseErrorJson, result::ServerResult};
@@ -11,13 +11,16 @@ use crate::{rest::RestResponseErrorJson, result::ServerResult};
 #[derive(Error, Debug)]
 pub enum ServerError {
     #[error("Exception: {0}")]
-    Exception(#[from] Exception),
+    Exception(#[from] ServerException),
 
     #[error("App error: {0}")]
     App(#[from] AppError),
 
     #[error("Database error: {0}")]
     Db(#[from] DbErr),
+
+    #[error("Sqlx error: {0}")]
+    Sqlx(#[from] SqlxError),
 
     #[error("Config error: {0}")]
     Config(#[from] config::ConfigError),
@@ -56,27 +59,27 @@ impl IntoResponse for ServerError {
 }
 
 #[derive(Debug)]
-pub struct Exception {
+pub struct ServerException {
     status: StatusCode,
     code: String,
     message: Option<String>,
 }
 
-impl Display for Exception {
+impl Display for ServerException {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_fmt(format_args!("{}", self.code))
     }
 }
 
-impl std::error::Error for Exception {}
+impl std::error::Error for ServerException {}
 
-impl<T> From<Exception> for ServerResult<T> {
-    fn from(value: Exception) -> Self {
+impl<T> From<ServerException> for ServerResult<T> {
+    fn from(value: ServerException) -> Self {
         Err(value.into())
     }
 }
 
-impl Exception {
+impl ServerException {
     pub fn new(code: &str) -> Self {
         Self {
             status: StatusCode::OK,

@@ -5,6 +5,7 @@ use strum_macros::{Display, EnumString};
 use utoipa::ToSchema;
 use uuid::Uuid;
 
+#[derive(Debug, Clone)]
 pub struct User {
     pub id: Uuid,
     pub account: String,
@@ -37,7 +38,9 @@ impl From<users::Model> for User {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Display, EnumString, Default, ToSchema)]
+#[derive(
+    Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Display, EnumString, Default, ToSchema,
+)]
 #[serde(rename_all = "camelCase")]
 #[strum(serialize_all = "camelCase")]
 pub enum Gender {

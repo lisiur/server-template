@@ -1,7 +1,7 @@
 use entity::users;
 use sea_orm::{ActiveValue, EntityTrait, prelude::Uuid};
 
-use crate::{models::user::Gender, result::AppResult};
+use crate::{models::user::Gender, result::AppResult, utils::password::hash_password};
 
 use super::UserService;
 
@@ -29,14 +29,16 @@ impl UserService {
             gender: ActiveValue::Set(Gender::Unknown.to_string()),
             birthday: ActiveValue::NotSet,
             bio: ActiveValue::NotSet,
-            password_digest: ActiveValue::NotSet,
+            password_digest: ActiveValue::Set(Some(hash_password(&params.password))),
             last_login: ActiveValue::NotSet,
             failed_login_attempts: ActiveValue::NotSet,
             is_deleted: ActiveValue::NotSet,
             created_at: ActiveValue::NotSet,
             updated_at: ActiveValue::NotSet,
         };
-        let result = users::Entity::insert(user_active_model).exec(&self.0).await?;
+        let result = users::Entity::insert(user_active_model)
+            .exec(&self.0)
+            .await?;
 
         Ok(result.last_insert_id)
     }

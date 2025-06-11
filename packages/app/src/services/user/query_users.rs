@@ -5,7 +5,10 @@ use crate::{
     error::AppException,
     models::user::User,
     result::AppResult,
-    utils::query::{FilterAtom, FilterCondition, PageableQuery, SelectQuery},
+    utils::{
+        password::verify_password,
+        query::{FilterAtom, FilterCondition, PageableQuery, SelectQuery},
+    },
 };
 
 use super::UserService;
@@ -17,6 +20,30 @@ impl UserService {
         let Some(user) = user else {
             return Err(AppException::UserNotFound.into());
         };
+
+        Ok(user.into())
+    }
+
+    pub async fn query_user_by_account_and_password(
+        &self,
+        account: &str,
+        password: &str,
+    ) -> AppResult<User> {
+        let user = users::Entity::find()
+            .filter(users::Column::Account.eq(account))
+            .one(&self.0)
+            .await?;
+        let Some(user) = user else {
+            return Err(AppException::UserNotFound.into());
+        };
+
+        let password_digest = user.password_digest.as_deref().unwrap_or_default();
+
+        let password_valid = verify_password(&password, &password_digest);
+
+        if !password_valid {
+            return Err(AppException::PasswordError.into());
+        }
 
         Ok(user.into())
     }

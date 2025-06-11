@@ -10,6 +10,20 @@ use uuid::Uuid;
 
 #[derive(ToSchema, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct LoginRequestDto {
+    pub account: String,
+    pub password: String,
+}
+
+#[derive(ToSchema, Serialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct LoginResponseDto {
+    pub user_id: Uuid,
+    pub account: String,
+}
+
+#[derive(ToSchema, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AssignUserPermissionsDto {
     user_id: Uuid,
     permission_id_list: Vec<Uuid>,

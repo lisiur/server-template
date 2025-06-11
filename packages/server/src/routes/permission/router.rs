@@ -1,27 +1,27 @@
 use app::{services::permission::PermissionService, utils::query::PaginatedQuery};
 use axum::{
-    Json, Router,
+    Extension, Json, Router,
     extract::{Query, State},
     routing::{delete, get, post},
 };
+use sea_orm::DatabaseConnection;
 use utoipa::OpenApi;
 use uuid::Uuid;
 
 use crate::{
     dto::PaginatedQueryDto,
-    permission::dto::{
-        CreatePermissionDto, DeletePermissionsRequestDto, FilterPermissionsDto, PermissionDto,
-    },
     rest::{PaginatedData, RestResponse, RestResponseJson, RestResponseJsonNull},
     result::ServerResult,
-    state::AppState,
+    routes::permission::dto::{
+        CreatePermissionDto, DeletePermissionsRequestDto, FilterPermissionsDto, PermissionDto,
+    },
 };
 
 #[derive(OpenApi)]
 #[openapi(paths(create_permission, query_permissions_by_page))]
 pub(crate) struct ApiDoc;
 
-pub(crate) fn init() -> Router<AppState> {
+pub(crate) fn init() -> Router {
     Router::new()
         .route("/createPermission", post(create_permission))
         .route("/queryPermissionsByPage", get(query_permissions_by_page))
@@ -40,10 +40,10 @@ pub(crate) fn init() -> Router<AppState> {
     )
 )]
 pub async fn query_permissions_by_page(
-    State(state): State<AppState>,
+    Extension(conn): Extension<DatabaseConnection>,
     Query(query): Query<PaginatedQuery<FilterPermissionsDto>>,
 ) -> ServerResult<RestResponseJson<PaginatedData<PermissionDto>>> {
-    let permission_service = PermissionService::new(state.db_conn);
+    let permission_service = PermissionService::new(conn);
 
     let (records, total) = permission_service.query_permissions_by_page(query).await?;
 
@@ -67,10 +67,10 @@ pub async fn query_permissions_by_page(
     )
 )]
 pub async fn create_permission(
-    State(state): State<AppState>,
+    Extension(conn): Extension<DatabaseConnection>,
     Json(params): Json<CreatePermissionDto>,
 ) -> ServerResult<RestResponseJson<Uuid>> {
-    let permission_service = PermissionService::new(state.db_conn);
+    let permission_service = PermissionService::new(conn);
 
     let user_id = permission_service.create_permission(params.into()).await?;
 
@@ -89,10 +89,10 @@ pub async fn create_permission(
     )
 )]
 pub async fn delete_permissions(
-    State(state): State<AppState>,
+    Extension(conn): Extension<DatabaseConnection>,
     Json(params): Json<DeletePermissionsRequestDto>,
 ) -> ServerResult<RestResponseJsonNull> {
-    let permission_service = PermissionService::new(state.db_conn);
+    let permission_service = PermissionService::new(conn);
 
     permission_service.delete_permissions(params.into()).await?;
 

@@ -3,18 +3,18 @@ use app::{
     utils::query::PaginatedQuery,
 };
 use axum::{
-    Json, Router,
+    Extension, Json, Router,
     extract::{Query, State},
     routing::{delete, get, patch, post},
 };
+use sea_orm::DatabaseConnection;
 use utoipa::OpenApi;
 
 use crate::{
     dto::PaginatedQueryDto,
-    group::dto::{CreateGroupResponseDto, DeleteGroupsRequestDto, UpdateGroupRequestDto},
     rest::{Null, PaginatedData, RestResponse, RestResponseJson},
     result::ServerResult,
-    state::AppState,
+    routes::group::dto::{CreateGroupResponseDto, DeleteGroupsRequestDto, UpdateGroupRequestDto},
 };
 
 use super::dto::{CreateGroupRequestDto, FilterGroupsDto, GroupDto};
@@ -23,7 +23,7 @@ use super::dto::{CreateGroupRequestDto, FilterGroupsDto, GroupDto};
 #[openapi(paths(create_group, query_groups_by_page, delete_groups, update_group))]
 pub(crate) struct ApiDoc;
 
-pub(crate) fn init() -> Router<AppState> {
+pub(crate) fn init() -> Router {
     Router::new()
         .route("/createGroup", post(create_group))
         .route("/queryGroupsByPage", get(query_groups_by_page))
@@ -43,10 +43,10 @@ pub(crate) fn init() -> Router<AppState> {
     )
 )]
 pub async fn query_groups_by_page(
-    State(state): State<AppState>,
+    Extension(conn): Extension<DatabaseConnection>,
     Query(query): Query<PaginatedQuery<FilterGroupsDto>>,
 ) -> ServerResult<RestResponseJson<PaginatedData<GroupDto>>> {
-    let group_service = GroupService::new(state.db_conn);
+    let group_service = GroupService::new(conn);
 
     let (groups, total) = group_service.query_groups_by_page(query).await?;
     let records = groups.into_iter().map(GroupDto::from).collect::<Vec<_>>();
@@ -66,10 +66,10 @@ pub async fn query_groups_by_page(
     )
 )]
 pub async fn create_group(
-    State(state): State<AppState>,
+    Extension(conn): Extension<DatabaseConnection>,
     Json(params): Json<CreateGroupRequestDto>,
 ) -> ServerResult<RestResponseJson<CreateGroupResponseDto>> {
-    let group_service = GroupService::new(state.db_conn);
+    let group_service = GroupService::new(conn);
 
     let group_id = group_service
         .create_group(CreateGroupParams {
@@ -95,10 +95,10 @@ pub async fn create_group(
     )
 )]
 pub async fn delete_groups(
-    State(state): State<AppState>,
+    Extension(conn): Extension<DatabaseConnection>,
     Json(params): Json<DeleteGroupsRequestDto>,
 ) -> ServerResult<RestResponseJson<Null>> {
-    let group_service = GroupService::new(state.db_conn);
+    let group_service = GroupService::new(conn);
     group_service.delete_groups(params.into()).await?;
     Ok(RestResponse::null())
 }
@@ -115,10 +115,10 @@ pub async fn delete_groups(
     )
 )]
 pub async fn update_group(
-    State(state): State<AppState>,
+    Extension(conn): Extension<DatabaseConnection>,
     Json(params): Json<UpdateGroupRequestDto>,
 ) -> ServerResult<RestResponseJson<Null>> {
-    let group_service = GroupService::new(state.db_conn);
+    let group_service = GroupService::new(conn);
     group_service.update_group(params.into()).await?;
     Ok(RestResponse::null())
 }

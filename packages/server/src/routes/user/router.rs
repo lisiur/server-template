@@ -3,10 +3,11 @@ use app::{
     utils::query::PaginatedQuery,
 };
 use axum::{
-    Json, Router,
-    extract::{Query, State},
+    Extension, Json, Router,
+    extract::Query,
     routing::{delete, get, post},
 };
+use sea_orm::DatabaseConnection;
 use utoipa::OpenApi;
 use uuid::Uuid;
 
@@ -14,8 +15,7 @@ use crate::{
     dto::PaginatedQueryDto,
     rest::{PaginatedData, RestResponse, RestResponseJson, RestResponseJsonNull},
     result::ServerResult,
-    state::AppState,
-    user::dto::DeleteUsersRequestDto,
+    routes::user::dto::DeleteUsersRequestDto,
 };
 
 use super::dto::{CreateUserDto, FilterUserDto, UserDto};
@@ -24,7 +24,7 @@ use super::dto::{CreateUserDto, FilterUserDto, UserDto};
 #[openapi(paths(list_users, create_user, query_users_by_page))]
 pub(crate) struct ApiDoc;
 
-pub(crate) fn init() -> Router<AppState> {
+pub(crate) fn init() -> Router {
     Router::new()
         .route("/listUsers", get(list_users))
         .route("/createUser", post(create_user))
@@ -43,9 +43,9 @@ pub(crate) fn init() -> Router<AppState> {
 )]
 /// List all users
 pub async fn list_users(
-    State(state): State<AppState>,
+    Extension(conn): Extension<DatabaseConnection>,
 ) -> ServerResult<RestResponseJson<Vec<UserDto>>> {
-    let user_service = UserService::new(state.db_conn);
+    let user_service = UserService::new(conn);
 
     let users = user_service.query_users_list().await?;
     let users = users.into_iter().map(UserDto::from).collect();
@@ -65,10 +65,10 @@ pub async fn list_users(
 )]
 /// Query users by page
 pub async fn query_users_by_page(
-    State(state): State<AppState>,
+    Extension(conn): Extension<DatabaseConnection>,
     Query(query): Query<PaginatedQuery<FilterUserDto>>,
 ) -> ServerResult<RestResponseJson<PaginatedData<UserDto>>> {
-    let user_service = UserService::new(state.db_conn);
+    let user_service = UserService::new(conn);
 
     let (users, total) = user_service.query_users_by_page(query).await?;
     let records = users.into_iter().map(UserDto::from).collect::<Vec<_>>();
@@ -88,10 +88,10 @@ pub async fn query_users_by_page(
 )]
 /// Create user
 pub async fn create_user(
-    State(state): State<AppState>,
+    Extension(conn): Extension<DatabaseConnection>,
     Json(params): Json<CreateUserDto>,
 ) -> ServerResult<RestResponseJson<Uuid>> {
-    let user_service = UserService::new(state.db_conn);
+    let user_service = UserService::new(conn);
 
     let user_id = user_service
         .create_user(CreateUserParams {
@@ -116,10 +116,10 @@ pub async fn create_user(
     )
 )]
 pub async fn delete_users(
-    State(state): State<AppState>,
+    Extension(conn): Extension<DatabaseConnection>,
     Json(params): Json<DeleteUsersRequestDto>,
 ) -> ServerResult<RestResponseJsonNull> {
-    let user_service = UserService::new(state.db_conn);
+    let user_service = UserService::new(conn);
 
     user_service.delete_users(params.into()).await?;
 
