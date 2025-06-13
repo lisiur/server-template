@@ -2,6 +2,7 @@ use std::rc::Rc;
 
 use app::services::auth::{
     assign_permissions::AssignUserPermissionsParams,
+    login::LoginParams,
     query_permissions::{GroupPermissionChainNode, GroupPermissionTreeGroupNode},
 };
 use serde::{Deserialize, Serialize};
@@ -13,6 +14,22 @@ use uuid::Uuid;
 pub struct LoginRequestDto {
     pub account: String,
     pub password: String,
+    pub ip: Option<String>,
+    pub platform: Option<String>,
+    #[schema(ignore)]
+    pub agent: Option<String>,
+}
+
+impl From<LoginRequestDto> for LoginParams {
+    fn from(value: LoginRequestDto) -> Self {
+        Self {
+            account: value.account,
+            password: value.password,
+            ip: value.ip,
+            platform: value.platform,
+            agent: value.agent,
+        }
+    }
 }
 
 #[derive(ToSchema, Serialize, Debug, Clone)]

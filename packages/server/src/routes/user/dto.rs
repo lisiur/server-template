@@ -8,12 +8,16 @@ use utoipa::{IntoParams, ToSchema};
 use uuid::Uuid;
 
 #[derive(Debug, ToSchema, Deserialize)]
+#[serde(rename_all = "camelCase")]
+#[schema(rename_all = "camelCase")]
 pub struct CreateUserDto {
     pub account: String,
     pub password: String,
 }
 
 #[derive(Debug, ToSchema, Serialize)]
+#[serde(rename_all = "camelCase")]
+#[schema(rename_all = "camelCase")]
 pub struct UserDto {
     pub id: Uuid,
     pub account: String,
@@ -47,7 +51,8 @@ impl From<User> for UserDto {
 }
 
 #[derive(Debug, Clone, Deserialize, IntoParams)]
-#[into_params(parameter_in = Query)]
+#[serde(rename_all = "camelCase")]
+#[into_params(parameter_in = Query, rename_all = "camelCase")]
 pub struct FilterUserDto {
     pub account: Option<String>,
 }

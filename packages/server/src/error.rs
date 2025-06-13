@@ -4,9 +4,10 @@ use app::error::AppError;
 use axum::response::{IntoResponse, Response};
 use http::StatusCode;
 use sea_orm::{DbErr, SqlxError};
+use strum::Display;
 use thiserror::Error;
 
-use crate::{rest::RestResponseErrorJson, result::ServerResult};
+use crate::{response::ResponseErrorJson, result::ServerResult};
 
 #[derive(Error, Debug)]
 pub enum ServerError {
@@ -32,7 +33,11 @@ pub enum ServerError {
 impl ServerError {
     pub fn status(&self) -> StatusCode {
         match &self {
-            &Self::Exception(exception) => exception.status.clone(),
+            &Self::Exception(exception) => match exception.code {
+                ServerExceptionCode::Unauthorized => StatusCode::UNAUTHORIZED,
+                ServerExceptionCode::Forbidden => StatusCode::FORBIDDEN,
+                ServerExceptionCode::InternalServerError => StatusCode::INTERNAL_SERVER_ERROR,
+            },
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
@@ -53,15 +58,22 @@ impl From<&str> for ServerError {
 
 impl IntoResponse for ServerError {
     fn into_response(self) -> Response {
-        let error_data = RestResponseErrorJson::new(self.code(), self.to_string());
-        (self.status(), error_data).into_response()
+        let error_data = ResponseErrorJson::new(self.code(), self.to_string());
+        (self.status(), serde_json::to_string(&error_data).unwrap()).into_response()
     }
+}
+
+#[derive(Debug, Display)]
+#[strum(serialize_all = "snake_case")]
+pub enum ServerExceptionCode {
+    Unauthorized,
+    Forbidden,
+    InternalServerError,
 }
 
 #[derive(Debug)]
 pub struct ServerException {
-    status: StatusCode,
-    code: String,
+    code: ServerExceptionCode,
     message: Option<String>,
 }
 
@@ -80,17 +92,11 @@ impl<T> From<ServerException> for ServerResult<T> {
 }
 
 impl ServerException {
-    pub fn new(code: &str) -> Self {
+    pub fn new(code: ServerExceptionCode) -> Self {
         Self {
-            status: StatusCode::OK,
-            code: code.to_string(),
+            code,
             message: None,
         }
-    }
-
-    pub fn status(mut self, status: StatusCode) -> Self {
-        self.status = status;
-        self
     }
 
     pub fn message(mut self, message: &str) -> Self {

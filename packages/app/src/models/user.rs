@@ -1,14 +1,15 @@
 use chrono::{DateTime, Utc};
 use entity::users;
 use serde::{Deserialize, Serialize};
-use strum_macros::{Display, EnumString};
+use strum::{Display, EnumString};
 use utoipa::ToSchema;
 use uuid::Uuid;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct User {
     pub id: Uuid,
     pub account: String,
+    pub password_digest: Option<String>,
     pub nickname: Option<String>,
     pub real_name: Option<String>,
     pub phone: Option<String>,
@@ -25,6 +26,7 @@ impl From<users::Model> for User {
         Self {
             id: value.id,
             account: value.account,
+            password_digest: value.password_digest,
             nickname: value.nickname,
             real_name: value.real_name,
             phone: value.phone,
@@ -39,10 +41,10 @@ impl From<users::Model> for User {
 }
 
 #[derive(
-    Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Display, EnumString, Default, ToSchema,
+    Clone, Debug, PartialEq, Eq, Serialize, Deserialize, EnumString, Display, Default, ToSchema,
 )]
 #[serde(rename_all = "camelCase")]
-#[strum(serialize_all = "camelCase")]
+#[strum(serialize_all = "snake_case")]
 pub enum Gender {
     #[default]
     Unknown,

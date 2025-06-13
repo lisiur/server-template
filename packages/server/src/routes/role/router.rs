@@ -1,16 +1,15 @@
 use app::{services::role::RoleService, utils::query::PaginatedQuery};
 use axum::{
     Extension, Json, Router,
-    extract::{Query, State},
+    extract::Query,
     routing::{delete, get, patch, post},
 };
 use sea_orm::DatabaseConnection;
 use utoipa::OpenApi;
-use uuid::Uuid;
 
 use crate::{
     dto::PaginatedQueryDto,
-    rest::{Null, PaginatedData, RestResponse, RestResponseJson, RestResponseJsonNull},
+    response::{ApiResponse, Null, PaginatedData, ResponseJson, ResponseJsonNull},
     result::ServerResult,
     routes::role::dto::{DeleteRolesRequestDto, UpdateRoleRequestDto},
     routes::user::dto::DeleteUsersRequestDto,
@@ -38,19 +37,19 @@ pub(crate) fn init() -> Router {
     path = "/queryRolesByPage",
     params(PaginatedQueryDto, RoleFilterDto),
     responses(
-        (status = OK, description = "ok", body = RestResponseJson<PaginatedData<RoleDto>>)
+        (status = OK, description = "ok", body = ResponseJson<PaginatedData<RoleDto>>)
     )
 )]
 pub async fn query_roles_by_page(
     Extension(conn): Extension<DatabaseConnection>,
     Query(query): Query<PaginatedQuery<RoleFilterDto>>,
-) -> ServerResult<RestResponseJson<PaginatedData<RoleDto>>> {
+) -> ServerResult<ApiResponse> {
     let role_service = RoleService::new(conn);
 
     let (records, total) = role_service.query_roles_by_page(query).await?;
     let records = records.into_iter().map(RoleDto::from).collect::<Vec<_>>();
 
-    Ok(RestResponse::json(PaginatedData { records, total }))
+    Ok(ApiResponse::json(PaginatedData { records, total }))
 }
 
 /// Create role
@@ -61,18 +60,18 @@ pub async fn query_roles_by_page(
     path = "/createRole",
     request_body = CreateRoleRequestDto,
     responses(
-        (status = OK, description = "ok", body = RestResponseJson<Uuid>)
+        (status = OK, description = "ok", body = ResponseJson<Uuid>)
     )
 )]
 pub async fn create_role(
     Extension(conn): Extension<DatabaseConnection>,
     Json(params): Json<CreateRoleRequestDto>,
-) -> ServerResult<RestResponseJson<Uuid>> {
+) -> ServerResult<ApiResponse> {
     let role_service = RoleService::new(conn);
 
     let id = role_service.create_role(params.into()).await?;
 
-    Ok(RestResponse::json(id))
+    Ok(ApiResponse::json(id))
 }
 
 /// Delete roles
@@ -83,18 +82,18 @@ pub async fn create_role(
     path = "/deleteRoles",
     request_body = DeleteUsersRequestDto,
     responses(
-        (status = OK, description = "ok", body = RestResponseJsonNull)
+        (status = OK, description = "ok", body = ResponseJsonNull)
     )
 )]
 pub async fn delete_roles(
     Extension(conn): Extension<DatabaseConnection>,
     Json(params): Json<DeleteRolesRequestDto>,
-) -> ServerResult<RestResponseJsonNull> {
+) -> ServerResult<ApiResponse> {
     let role_service = RoleService::new(conn);
 
     role_service.delete_roles(params.into()).await?;
 
-    Ok(RestResponse::null())
+    Ok(ApiResponse::null())
 }
 
 /// Update role
@@ -105,14 +104,14 @@ pub async fn delete_roles(
     path = "/updateRole",
     request_body = UpdateRoleRequestDto,
     responses(
-        (status = OK, description = "ok", body = RestResponseJson<Null>)
+        (status = OK, description = "ok", body = ResponseJson<Null>)
     )
 )]
 pub async fn update_role(
     Extension(conn): Extension<DatabaseConnection>,
     Json(params): Json<UpdateRoleRequestDto>,
-) -> ServerResult<RestResponseJson<Null>> {
+) -> ServerResult<ApiResponse> {
     let role_service = RoleService::new(conn);
     role_service.update_role(params.into()).await?;
-    Ok(RestResponse::null())
+    Ok(ApiResponse::null())
 }

@@ -2,6 +2,7 @@
 
 pub mod prelude;
 
+pub mod auth_tokens;
 pub mod departments;
 pub mod groups;
 pub mod permissions;

@@ -11,6 +11,8 @@ use utoipa::{IntoParams, ToSchema};
 use uuid::Uuid;
 
 #[derive(Debug, ToSchema, Deserialize)]
+#[serde(rename_all = "camelCase")]
+#[schema(rename_all = "camelCase")]
 pub struct CreateDepartmentRequestDto {
     /// department's parent id
     pub parent_id: Option<Uuid>,
@@ -33,6 +35,8 @@ impl From<CreateDepartmentRequestDto> for CreateDepartmentParams {
 pub struct CreateDepartmentResponseDto(pub Uuid);
 
 #[derive(Debug, ToSchema, Serialize)]
+#[serde(rename_all = "camelCase")]
+#[schema(rename_all = "camelCase")]
 pub struct DepartmentDto {
     pub id: Uuid,
     pub name: String,
@@ -57,8 +61,8 @@ impl From<Department> for DepartmentDto {
 
 /// Department filter params
 #[derive(Debug, Clone, Deserialize, IntoParams)]
-#[into_params(parameter_in = Query)]
 #[serde(rename_all = "camelCase")]
+#[into_params(parameter_in = Query, rename_all  = "camelCase")]
 pub struct FilterDepartmentsDto {
     pub name: Option<String>,
 }
@@ -81,6 +85,8 @@ impl From<DeleteDepartmentsRequestDto> for DeleteDepartmentsParams {
 
 /// Department update params
 #[derive(Debug, ToSchema, Deserialize)]
+#[serde(rename_all = "camelCase")]
+#[schema(rename_all = "camelCase")]
 pub struct UpdateDepartmentRequestDto {
     id: Uuid,
     parent_id: Option<Uuid>,

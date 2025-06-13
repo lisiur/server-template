@@ -16,6 +16,7 @@ mod m012_create_table_departments;
 mod m013_create_table_relation_departments_permissions;
 mod m014_create_table_relation_departments_roles;
 mod m015_create_table_relation_departments_users;
+mod m016_create_table_auth_tokens;
 mod table_manager;
 
 pub struct Migrator;
@@ -40,6 +41,7 @@ impl MigratorTrait for Migrator {
             Box::new(m013_create_table_relation_departments_permissions::Migration),
             Box::new(m014_create_table_relation_departments_roles::Migration),
             Box::new(m015_create_table_relation_departments_users::Migration),
+            Box::new(m016_create_table_auth_tokens::Migration),
         ]
     }
 }

@@ -10,7 +10,7 @@ app = { path = "../app" }
 
 anyhow = "1.0.98"
 axum = { version = "0.8.3", features = ["ws", "multipart", "macros"] }
-axum-extra = { version = "0.10.1", features = ["cookie"] }
+axum-extra = { version = "0.10.1", features = ["cookie", "typed-header"] }
 chrono = "0.4.40"
 config = "0.15.11"
 dotenvy = "0.15.7"
@@ -41,13 +41,9 @@ utoipa = { version = "5.3.1", features = ["axum_extras", "uuid", "chrono"] }
 utoipa-scalar = { version = "0.3.0", features = ["axum"] }
 uuid = { version = "1.16.0", features = ["v4"] }
 validator = { version = "0.20.0", features = ["derive"] }
-tower-sessions = { version = "0.14.0", default-features = false, features = [
-    "signed",
-    "axum-core",
-] }
-tower-sessions-sqlx-store = { version = "0.15.0", features = ["postgres"] }
 time = "0.3.41"
 async-trait = "0.1.88"
+strum = { version = "0.27.1", features = ["derive"] }
 
 [build-dependencies]
 built = { version = "0.7.7", features = ["chrono", "git2", "semver"] }

@@ -7,11 +7,11 @@
     {
       "type": "lldb",
       "request": "launch",
-      "name": "Debug executable 'server-template'",
+      "name": "Debug executable 'server'",
       "cargo": {
-        "args": ["build", "--bin=server-template", "--package=server-template"],
+        "args": ["build"],
         "filter": {
-          "name": "server-template",
+          "name": "server",
           "kind": "bin"
         }
       },

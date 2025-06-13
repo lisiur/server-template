@@ -4,7 +4,7 @@ use app::{
 };
 use axum::{
     Extension, Json, Router,
-    extract::{Query, State},
+    extract::Query,
     routing::{delete, get, patch, post},
 };
 use sea_orm::DatabaseConnection;
@@ -12,7 +12,7 @@ use utoipa::OpenApi;
 
 use crate::{
     dto::PaginatedQueryDto,
-    rest::{Null, PaginatedData, RestResponse, RestResponseJson},
+    response::{ApiResponse, Null, PaginatedData, ResponseJson},
     result::ServerResult,
     routes::group::dto::{CreateGroupResponseDto, DeleteGroupsRequestDto, UpdateGroupRequestDto},
 };
@@ -39,19 +39,19 @@ pub(crate) fn init() -> Router {
     path = "/queryGroupsByPage",
     params(PaginatedQueryDto, FilterGroupsDto),
     responses(
-        (status = OK, description = "ok", body = RestResponseJson<PaginatedData<GroupDto>>)
+        (status = OK, description = "ok", body = ResponseJson<PaginatedData<GroupDto>>)
     )
 )]
 pub async fn query_groups_by_page(
     Extension(conn): Extension<DatabaseConnection>,
     Query(query): Query<PaginatedQuery<FilterGroupsDto>>,
-) -> ServerResult<RestResponseJson<PaginatedData<GroupDto>>> {
+) -> ServerResult<ApiResponse> {
     let group_service = GroupService::new(conn);
 
     let (groups, total) = group_service.query_groups_by_page(query).await?;
     let records = groups.into_iter().map(GroupDto::from).collect::<Vec<_>>();
 
-    Ok(RestResponse::json(PaginatedData { records, total }))
+    Ok(ApiResponse::json(PaginatedData { records, total }))
 }
 
 /// Create group
@@ -62,13 +62,13 @@ pub async fn query_groups_by_page(
     path = "/createGroup",
     request_body = CreateGroupRequestDto,
     responses(
-        (status = OK, description = "ok", body = RestResponseJson<CreateGroupResponseDto>)
+        (status = OK, description = "ok", body = ResponseJson<CreateGroupResponseDto>)
     )
 )]
 pub async fn create_group(
     Extension(conn): Extension<DatabaseConnection>,
     Json(params): Json<CreateGroupRequestDto>,
-) -> ServerResult<RestResponseJson<CreateGroupResponseDto>> {
+) -> ServerResult<ApiResponse> {
     let group_service = GroupService::new(conn);
 
     let group_id = group_service
@@ -80,7 +80,7 @@ pub async fn create_group(
         })
         .await?;
 
-    Ok(RestResponse::json(CreateGroupResponseDto(group_id)))
+    Ok(ApiResponse::json(CreateGroupResponseDto(group_id)))
 }
 
 /// Delete groups
@@ -91,16 +91,16 @@ pub async fn create_group(
     path = "/deleteGroups",
     request_body = DeleteGroupsRequestDto,
     responses(
-        (status = OK, description = "ok", body = RestResponseJson<Null>)
+        (status = OK, description = "ok", body = ResponseJson<Null>)
     )
 )]
 pub async fn delete_groups(
     Extension(conn): Extension<DatabaseConnection>,
     Json(params): Json<DeleteGroupsRequestDto>,
-) -> ServerResult<RestResponseJson<Null>> {
+) -> ServerResult<ApiResponse> {
     let group_service = GroupService::new(conn);
     group_service.delete_groups(params.into()).await?;
-    Ok(RestResponse::null())
+    Ok(ApiResponse::null())
 }
 
 /// Update group
@@ -111,14 +111,14 @@ pub async fn delete_groups(
     path = "/updateGroup",
     request_body = UpdateGroupRequestDto,
     responses(
-        (status = OK, description = "ok", body = RestResponseJson<Null>)
+        (status = OK, description = "ok", body = ResponseJson<Null>)
     )
 )]
 pub async fn update_group(
     Extension(conn): Extension<DatabaseConnection>,
     Json(params): Json<UpdateGroupRequestDto>,
-) -> ServerResult<RestResponseJson<Null>> {
+) -> ServerResult<ApiResponse> {
     let group_service = GroupService::new(conn);
     group_service.update_group(params.into()).await?;
-    Ok(RestResponse::null())
+    Ok(ApiResponse::null())
 }

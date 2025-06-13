@@ -1,20 +1,30 @@
-use axum::{Extension, extract::FromRequestParts};
+use std::str::FromStr;
+
+use app::{models::auth_token::SessionTokenPayload, services::auth_token::AuthTokenService};
+use axum::extract::FromRequestParts;
 use axum_extra::extract::CookieJar;
 use http::request::Parts;
 use sea_orm::DatabaseConnection;
-use serde::{Deserialize, Serialize};
-use tower_sessions::Session;
-const AUTH_SESSION_PREFIX_KEY: &str = "auth_session_";
+use uuid::Uuid;
+
+use crate::result::ServerResult;
+pub const SESSION_ID_KEY: &str = "id";
 
 #[derive(Debug)]
 pub struct AuthSession {
-    conn: DatabaseConnection,
-    session_id: String,
-    session: Session,
+    pub(self) conn: DatabaseConnection,
+    pub session_id: Uuid,
+    pub payload: SessionTokenPayload,
 }
 
 impl AuthSession {
-    pub async fn login_with_account_and_password(&mut self, account: &str, password: &str) {}
+    pub async fn logout(&self) -> ServerResult<()> {
+        let auth_token_service = AuthTokenService::new(self.conn.clone());
+        auth_token_service
+            .delete_auth_token_by_id(self.session_id)
+            .await?;
+        Ok(())
+    }
 }
 
 impl<S> FromRequestParts<S> for AuthSession
@@ -25,28 +35,28 @@ where
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         let jar = CookieJar::from_request_parts(parts, state).await.unwrap();
-        let Some(cookie) = jar.get("session_id") else {
+        let Some(cookie) = jar.get(SESSION_ID_KEY) else {
             return Err((http::StatusCode::UNAUTHORIZED, "Unauthorized"));
         };
 
-        let session_id = cookie.value().to_string();
+        let Ok(session_id) = Uuid::from_str(cookie.value()) else {
+            return Err((http::StatusCode::UNAUTHORIZED, "Unauthorized"));
+        };
 
-        let session = Session::from_request_parts(parts, state).await?;
+        let conn = parts.extensions.get::<DatabaseConnection>().unwrap();
+        let auth_token_service = AuthTokenService::new(conn.clone());
 
-        let Extension(conn) = Extension::<DatabaseConnection>::from_request_parts(parts, state)
-            .await
-            .unwrap();
+        let Ok(Some(auth_token)) = auth_token_service.query_auth_token_by_id(session_id).await
+        else {
+            return Err((http::StatusCode::UNAUTHORIZED, "Unauthorized"));
+        };
+
+        let payload = serde_json::from_str::<SessionTokenPayload>(&auth_token.payload).unwrap();
 
         Ok(AuthSession {
-            conn,
+            conn: conn.clone(),
             session_id,
-            session,
+            payload,
         })
-
-        // let Ok(Some(auth_session)) = session.get::<AuthSession>(&session_id).await else {
-        //     return Err((http::StatusCode::UNAUTHORIZED, "Unauthorized"));
-        // };
-
-        // Ok(auth_session)
     }
 }

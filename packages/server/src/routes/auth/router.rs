@@ -1,16 +1,16 @@
 use app::services::auth::AuthService;
 use axum::{
     Extension, Json, Router,
-    extract::{Query, State},
+    extract::Query,
     routing::{get, post},
 };
+use axum_extra::{TypedHeader, extract::cookie::Cookie, headers::UserAgent};
 use sea_orm::DatabaseConnection;
 use utoipa::OpenApi;
 
 use crate::{
-    error::ServerException,
-    extractors::auth_session::AuthSession,
-    rest::{Null, RestResponse, RestResponseJson},
+    extractors::auth_session::{AuthSession, SESSION_ID_KEY},
+    response::{ApiResponse, Null, ResponseJson},
     result::ServerResult,
     routes::{
         auth::dto::{
@@ -19,7 +19,6 @@ use crate::{
         },
         permission::dto::PermissionDto,
     },
-    state::AppState,
 };
 
 use super::dto::{AssignUserPermissionsDto, GroupTreePermissionsDto};
@@ -38,9 +37,9 @@ pub(crate) struct ApiDoc;
 /// Assign user permissions
 pub(crate) fn init() -> Router {
     Router::new()
+        .route("/login", post(login))
         .route("/logout", get(logout))
         .route("/assignUserPermissions", post(assign_user_permissions))
-        .route("/login", post(login))
         .route("/queryUserPermissions", get(query_user_permissions))
         .route("/queryGroupPermissions", get(query_group_permissions))
         .route(
@@ -57,15 +56,33 @@ pub(crate) fn init() -> Router {
     path = "/login",
     request_body = LoginRequestDto,
     responses(
-        (status = OK, description = "ok", body = RestResponseJson<LoginResponseDto>)
+        (status = OK, description = "ok", body = ResponseJson<LoginResponseDto>)
     )
 )]
 pub async fn login(
     Extension(conn): Extension<DatabaseConnection>,
-    Json(params): Json<LoginRequestDto>,
-) -> ServerResult<RestResponseJson<LoginResponseDto>> {
+    TypedHeader(user_agent): TypedHeader<UserAgent>,
+    Json(mut params): Json<LoginRequestDto>,
+) -> ServerResult<ApiResponse> {
+    params.agent = Some(user_agent.to_string());
+
     let auth_service = AuthService::new(conn);
-    todo!()
+    let (auth_token_id, user) = auth_service.login(params.into()).await?;
+
+    let mut cookie = Cookie::new(SESSION_ID_KEY, auth_token_id.to_string());
+    cookie.set_path("/");
+    cookie.set_http_only(true);
+
+    let response_dto = LoginResponseDto {
+        user_id: user.id,
+        account: user.account,
+    };
+
+    let mut response = ApiResponse::default();
+    response.set_cookie(cookie);
+    response.set_body_json(response_dto);
+
+    Ok(response)
 }
 
 /// Logout
@@ -75,11 +92,12 @@ pub async fn login(
     get,
     path = "/logout",
     responses(
-        (status = OK, description = "ok", body = RestResponseJson<Null>)
+        (status = OK, description = "ok", body = ResponseJson<Null>)
     )
 )]
-pub async fn logout(mut auth_session: AuthSession) -> ServerResult<RestResponseJson<Null>> {
-    Ok(RestResponse::null())
+pub async fn logout(auth_session: AuthSession) -> ServerResult<ApiResponse> {
+    auth_session.logout().await?;
+    Ok(ApiResponse::null())
 }
 
 /// Assign user permissions
@@ -90,18 +108,18 @@ pub async fn logout(mut auth_session: AuthSession) -> ServerResult<RestResponseJ
     path = "/assignUserPermissions",
     request_body = AssignUserPermissionsDto,
     responses(
-        (status = OK, description = "ok", body = RestResponseJson<Null>)
+        (status = OK, description = "ok", body = ResponseJson<Null>)
     )
 )]
 pub async fn assign_user_permissions(
     Extension(conn): Extension<DatabaseConnection>,
     Json(params): Json<AssignUserPermissionsDto>,
-) -> ServerResult<RestResponseJson<Null>> {
+) -> ServerResult<ApiResponse> {
     let auth_service = AuthService::new(conn);
 
     auth_service.assign_user_permissions(params.into()).await?;
 
-    Ok(RestResponse::null())
+    Ok(ApiResponse::null())
 }
 
 /// Query user permission
@@ -112,19 +130,19 @@ pub async fn assign_user_permissions(
     path = "/queryUserPermissions",
     params(QueryUserPermissionsDto),
     responses(
-        (status = OK, description = "ok", body = RestResponseJson<Vec<PermissionDto>>)
+        (status = OK, description = "ok", body = ResponseJson<Vec<PermissionDto>>)
     )
 )]
 pub async fn query_user_permissions(
     Extension(conn): Extension<DatabaseConnection>,
     Query(query): Query<QueryUserPermissionsDto>,
-) -> ServerResult<RestResponseJson<Vec<PermissionDto>>> {
+) -> ServerResult<ApiResponse> {
     let auth_service = AuthService::new(conn);
 
     let res = auth_service.query_user_permissions(query.user_id).await?;
-    let res = res.into_iter().map(PermissionDto::from).collect();
+    let res = res.into_iter().map(PermissionDto::from).collect::<Vec<_>>();
 
-    Ok(RestResponse::json(res))
+    Ok(ApiResponse::json(res))
 }
 
 /// Query group permissions
@@ -135,18 +153,18 @@ pub async fn query_user_permissions(
     path = "/queryGroupPermissions",
     params(QueryGroupPermissionsDto),
     responses(
-        (status = OK, description = "ok", body = RestResponseJson<GroupTreePermissionsDto>)
+        (status = OK, description = "ok", body = ResponseJson<GroupTreePermissionsDto>)
     )
 )]
 pub async fn query_group_permissions(
     Extension(conn): Extension<DatabaseConnection>,
     Query(query): Query<QueryGroupPermissionsDto>,
-) -> ServerResult<RestResponseJson<Vec<PermissionDto>>> {
+) -> ServerResult<ApiResponse> {
     let auth_service = AuthService::new(conn);
 
     let res = auth_service.query_group_permissions(query.group_id).await?;
 
-    Ok(RestResponse::json(
+    Ok(ApiResponse::json(
         res.into_iter()
             .map(PermissionDto::from)
             .collect::<Vec<PermissionDto>>(),
@@ -161,20 +179,20 @@ pub async fn query_group_permissions(
     path = "/queryDepartmentPermissions",
     params(QueryDepartmentPermissionsDto),
     responses(
-        (status = OK, description = "ok", body = RestResponseJson<Vec<PermissionDto>>)
+        (status = OK, description = "ok", body = ResponseJson<Vec<PermissionDto>>)
     )
 )]
 pub async fn query_department_permissions(
     Extension(conn): Extension<DatabaseConnection>,
     Query(query): Query<QueryDepartmentPermissionsDto>,
-) -> ServerResult<RestResponseJson<Vec<PermissionDto>>> {
+) -> ServerResult<ApiResponse> {
     let auth_service = AuthService::new(conn);
 
     let res = auth_service
         .query_department_permissions(query.department_id)
         .await?;
 
-    Ok(RestResponse::json(
+    Ok(ApiResponse::json(
         res.into_iter()
             .map(PermissionDto::from)
             .collect::<Vec<PermissionDto>>(),

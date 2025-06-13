@@ -4,11 +4,6 @@ use info::Info;
 use result::ServerResult;
 use sea_orm::{Database, DatabaseConnection};
 use settings::Settings;
-use state::AppState;
-use time::Duration;
-use tokio::{signal, task::AbortHandle};
-use tower_sessions::{Expiry, SessionManagerLayer};
-use tower_sessions_sqlx_store::PostgresStore;
 use tracing_subscriber::EnvFilter;
 use utoipa::OpenApi;
 use utoipa_scalar::{Scalar, Servable};
@@ -18,11 +13,10 @@ mod error;
 mod extractors;
 mod info;
 mod middlewares;
-mod rest;
+mod response;
 mod result;
 mod routes;
 mod settings;
-mod state;
 
 #[tokio::main]
 async fn main() -> ServerResult<()> {
@@ -74,13 +68,6 @@ async fn main() -> ServerResult<()> {
     )]
     struct ApiDoc;
 
-    // Session layer
-    let session_store = PostgresStore::new(db_conn.get_postgres_connection_pool().clone());
-    session_store.migrate().await?;
-    let session_layer = SessionManagerLayer::new(session_store)
-        .with_secure(false)
-        .with_expiry(Expiry::OnInactivity(Duration::days(1)));
-
     // Init router
     let router = Router::new()
         .route(
@@ -99,7 +86,6 @@ async fn main() -> ServerResult<()> {
         .nest("/roles", routes::role::router::init())
         .nest("/session", routes::session::router::init())
         .nest("/users", routes::user::router::init())
-        .layer(session_layer)
         .layer(Extension(db_conn));
 
     let server_port = setting.server_port;
@@ -113,28 +99,4 @@ async fn main() -> ServerResult<()> {
         .map_err(|err| anyhow::anyhow!(err))?;
 
     Ok(())
-}
-
-async fn shutdown_signal(deletion_task_abort_handle: AbortHandle) {
-    let ctrl_c = async {
-        signal::ctrl_c()
-            .await
-            .expect("failed to install Ctrl+C handler");
-    };
-
-    #[cfg(unix)]
-    let terminate = async {
-        signal::unix::signal(signal::unix::SignalKind::terminate())
-            .expect("failed to install signal handler")
-            .recv()
-            .await;
-    };
-
-    #[cfg(not(unix))]
-    let terminate = std::future::pending::<()>();
-
-    tokio::select! {
-        _ = ctrl_c => { deletion_task_abort_handle.abort() },
-        _ = terminate => { deletion_task_abort_handle.abort() },
-    }
 }

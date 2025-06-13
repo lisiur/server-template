@@ -9,11 +9,10 @@ use axum::{
 };
 use sea_orm::DatabaseConnection;
 use utoipa::OpenApi;
-use uuid::Uuid;
 
 use crate::{
     dto::PaginatedQueryDto,
-    rest::{PaginatedData, RestResponse, RestResponseJson, RestResponseJsonNull},
+    response::{ApiResponse, PaginatedData, ResponseJson, ResponseJsonNull},
     result::ServerResult,
     routes::user::dto::DeleteUsersRequestDto,
 };
@@ -21,12 +20,12 @@ use crate::{
 use super::dto::{CreateUserDto, FilterUserDto, UserDto};
 
 #[derive(OpenApi)]
-#[openapi(paths(list_users, create_user, query_users_by_page))]
+#[openapi(paths(query_users, create_user, query_users_by_page))]
 pub(crate) struct ApiDoc;
 
 pub(crate) fn init() -> Router {
     Router::new()
-        .route("/listUsers", get(list_users))
+        .route("/listUsers", get(query_users))
         .route("/createUser", post(create_user))
         .route("/queryUsersByPage", get(query_users_by_page))
         .route("/deleteUsers", delete(delete_users))
@@ -38,19 +37,19 @@ pub(crate) fn init() -> Router {
     get,
     path = "/listUsers",
     responses(
-        (status = OK, description = "ok", body = RestResponseJson<Vec<UserDto>>)
+        (status = OK, description = "ok", body = ResponseJson<Vec<UserDto>>)
     )
 )]
-/// List all users
-pub async fn list_users(
+/// Query users
+pub async fn query_users(
     Extension(conn): Extension<DatabaseConnection>,
-) -> ServerResult<RestResponseJson<Vec<UserDto>>> {
+) -> ServerResult<ApiResponse> {
     let user_service = UserService::new(conn);
 
     let users = user_service.query_users_list().await?;
-    let users = users.into_iter().map(UserDto::from).collect();
+    let users = users.into_iter().map(UserDto::from).collect::<Vec<_>>();
 
-    Ok(RestResponse::json(users))
+    Ok(ApiResponse::json(users))
 }
 
 #[utoipa::path(
@@ -60,20 +59,20 @@ pub async fn list_users(
     path = "/queryUsersByPage",
     params(PaginatedQueryDto, FilterUserDto),
     responses(
-        (status = OK, description = "ok", body = RestResponseJson<PaginatedData<UserDto>>)
+        (status = OK, description = "ok", body = ResponseJson<PaginatedData<UserDto>>)
     )
 )]
 /// Query users by page
 pub async fn query_users_by_page(
     Extension(conn): Extension<DatabaseConnection>,
     Query(query): Query<PaginatedQuery<FilterUserDto>>,
-) -> ServerResult<RestResponseJson<PaginatedData<UserDto>>> {
+) -> ServerResult<ApiResponse> {
     let user_service = UserService::new(conn);
 
     let (users, total) = user_service.query_users_by_page(query).await?;
     let records = users.into_iter().map(UserDto::from).collect::<Vec<_>>();
 
-    Ok(RestResponse::json(PaginatedData { records, total }))
+    Ok(ApiResponse::json(PaginatedData { records, total }))
 }
 
 #[utoipa::path(
@@ -83,14 +82,14 @@ pub async fn query_users_by_page(
     path = "/createUser",
     request_body = CreateUserDto,
     responses(
-        (status = OK, description = "ok", body = RestResponseJson<Uuid>)
+        (status = OK, description = "ok", body = ResponseJson<Uuid>)
     )
 )]
 /// Create user
 pub async fn create_user(
     Extension(conn): Extension<DatabaseConnection>,
     Json(params): Json<CreateUserDto>,
-) -> ServerResult<RestResponseJson<Uuid>> {
+) -> ServerResult<ApiResponse> {
     let user_service = UserService::new(conn);
 
     let user_id = user_service
@@ -101,7 +100,7 @@ pub async fn create_user(
         })
         .await?;
 
-    Ok(RestResponse::json(user_id))
+    Ok(ApiResponse::json(user_id))
 }
 
 /// Delete users
@@ -112,16 +111,16 @@ pub async fn create_user(
     path = "/deleteUsers",
     request_body = DeleteUsersRequestDto,
     responses(
-        (status = OK, description = "ok", body = RestResponseJsonNull)
+        (status = OK, description = "ok", body = ResponseJsonNull)
     )
 )]
 pub async fn delete_users(
     Extension(conn): Extension<DatabaseConnection>,
     Json(params): Json<DeleteUsersRequestDto>,
-) -> ServerResult<RestResponseJsonNull> {
+) -> ServerResult<ApiResponse> {
     let user_service = UserService::new(conn);
 
     user_service.delete_users(params.into()).await?;
 
-    Ok(RestResponse::null())
+    Ok(ApiResponse::null())
 }
