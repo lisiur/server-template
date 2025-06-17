@@ -71,6 +71,18 @@ pub enum ServerExceptionCode {
     InternalServerError,
 }
 
+impl From<ServerExceptionCode> for ServerError {
+    fn from(value: ServerExceptionCode) -> Self {
+        Self::Exception(ServerException::new(value))
+    }
+}
+
+impl From<(ServerExceptionCode, &str)> for ServerError {
+    fn from(value: (ServerExceptionCode, &str)) -> Self {
+        Self::Exception(ServerException::new(value.0).message(value.1))
+    }
+}
+
 #[derive(Debug)]
 pub struct ServerException {
     code: ServerExceptionCode,

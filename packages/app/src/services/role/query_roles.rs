@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::{
     models::role::Role,
     utils::query::{FilterAtom, FilterCondition, PageableQuery},
@@ -32,6 +34,17 @@ impl RoleService {
         Ok((roles, count))
     }
 
+    /// Query role group's roles
+    pub async fn query_roles_by_role_group_id(&self, role_group_id: Uuid) -> AppResult<Vec<Role>> {
+        let roles = roles::Entity::find()
+            .filter(roles::Column::ParentId.eq(role_group_id))
+            .all(&self.0)
+            .await?;
+
+        Ok(roles.into_iter().map(Role::from).collect())
+    }
+
+    /// Query user's roles (flatten)
     pub async fn query_roles_by_user_id(&self, user_id: Uuid) -> AppResult<Vec<Role>> {
         let roles = roles::Entity::find()
             .inner_join(relation_roles_users::Entity)
@@ -39,9 +52,12 @@ impl RoleService {
             .all(&self.0)
             .await?;
 
-        Ok(roles.into_iter().map(Role::from).collect())
+        let flatten_roles = self.flat_roles(roles).await?;
+
+        Ok(flatten_roles.into_iter().map(Role::from).collect())
     }
 
+    /// Query group's roles (flatten)
     pub async fn query_roles_by_group_id(&self, group_id: Uuid) -> AppResult<Vec<Role>> {
         let roles = roles::Entity::find()
             .inner_join(relation_groups_roles::Entity)
@@ -49,9 +65,12 @@ impl RoleService {
             .all(&self.0)
             .await?;
 
-        Ok(roles.into_iter().map(Role::from).collect())
+        let flatten_roles = self.flat_roles(roles).await?;
+
+        Ok(flatten_roles.into_iter().map(Role::from).collect())
     }
 
+    /// Query groups's roles (flatten)
     pub async fn query_roles_by_groups_id_list(
         &self,
         group_id_list: Vec<Uuid>,
@@ -62,9 +81,12 @@ impl RoleService {
             .all(&self.0)
             .await?;
 
-        Ok(roles.into_iter().map(Role::from).collect())
+        let flatten_roles = self.flat_roles(roles).await?;
+
+        Ok(flatten_roles.into_iter().map(Role::from).collect())
     }
 
+    /// Query department's roles (flatten)
     pub async fn query_roles_by_department_id(&self, department_id: Uuid) -> AppResult<Vec<Role>> {
         let roles = roles::Entity::find()
             .inner_join(relation_departments_roles::Entity)
@@ -72,9 +94,12 @@ impl RoleService {
             .all(&self.0)
             .await?;
 
-        Ok(roles.into_iter().map(Role::from).collect())
+        let flatten_roles = self.flat_roles(roles).await?;
+
+        Ok(flatten_roles.into_iter().map(Role::from).collect())
     }
 
+    /// Query departments's roles (flatten)
     pub async fn query_roles_by_departments_id_list(
         &self,
         department_id_list: Vec<Uuid>,
@@ -85,7 +110,32 @@ impl RoleService {
             .all(&self.0)
             .await?;
 
-        Ok(roles.into_iter().map(Role::from).collect())
+        let flatten_roles = self.flat_roles(roles).await?;
+
+        Ok(flatten_roles.into_iter().map(Role::from).collect())
+    }
+
+    /// Flat roles
+    async fn flat_roles(&self, roles: Vec<roles::Model>) -> AppResult<Vec<roles::Model>> {
+        let (roles, role_groups): (Vec<roles::Model>, Vec<roles::Model>) =
+            roles.into_iter().partition(|x| x.parent_id.is_some());
+
+        let role_groups_id_list = role_groups.into_iter().map(|x| x.id).collect::<Vec<_>>();
+        let sub_roles = if role_groups_id_list.is_empty() {
+            vec![]
+        } else {
+            roles::Entity::find()
+                .filter(roles::Column::ParentId.is_in(role_groups_id_list))
+                .all(&self.0)
+                .await?
+        };
+
+        let mut role_map = HashMap::<Uuid, roles::Model>::new();
+        for role in [roles, sub_roles].concat() {
+            role_map.insert(role.id, role);
+        }
+
+        Ok(role_map.into_values().collect())
     }
 }
 

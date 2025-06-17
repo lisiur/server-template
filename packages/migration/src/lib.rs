@@ -17,6 +17,7 @@ mod m013_create_table_relation_departments_permissions;
 mod m014_create_table_relation_departments_roles;
 mod m015_create_table_relation_departments_users;
 mod m016_create_table_auth_tokens;
+mod m099_seeding_data_init;
 mod table_manager;
 
 pub struct Migrator;
@@ -29,8 +30,8 @@ impl MigratorTrait for Migrator {
             Box::new(m001_create_table_settings::Migration),
             Box::new(m002_create_table_permissions::Migration),
             Box::new(m003_create_table_roles::Migration),
-            Box::new(m004_create_table_users::Migration),
             Box::new(m005_create_table_groups::Migration),
+            Box::new(m004_create_table_users::Migration),
             Box::new(m006_create_table_relation_permissions_roles::Migration),
             Box::new(m007_create_table_relation_groups_users::Migration),
             Box::new(m008_create_table_relation_roles_users::Migration),
@@ -42,6 +43,7 @@ impl MigratorTrait for Migrator {
             Box::new(m014_create_table_relation_departments_roles::Migration),
             Box::new(m015_create_table_relation_departments_users::Migration),
             Box::new(m016_create_table_auth_tokens::Migration),
+            Box::new(m099_seeding_data_init::Migration),
         ]
     }
 }

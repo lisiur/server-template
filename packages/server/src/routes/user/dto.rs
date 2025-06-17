@@ -1,9 +1,10 @@
 use app::{
-    models::user::{Gender, User},
+    models::user::User,
     services::user::{delete_users::DeleteUsersParams, query_users::FilterUsersParams},
 };
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use shared::enums::Gender;
 use utoipa::{IntoParams, ToSchema};
 use uuid::Uuid;
 

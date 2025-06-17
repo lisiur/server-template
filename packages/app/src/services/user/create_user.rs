@@ -1,7 +1,8 @@
 use entity::users;
 use sea_orm::{ActiveValue, EntityTrait, prelude::Uuid};
+use shared::{enums::Gender, utils::hash_password};
 
-use crate::{models::user::Gender, result::AppResult, utils::password::hash_password};
+use crate::result::AppResult;
 
 use super::UserService;
 

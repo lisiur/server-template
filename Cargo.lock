@@ -133,6 +133,7 @@ dependencies = [
  "sea-orm",
  "serde",
  "serde_json",
+ "shared",
  "strum 0.27.1",
  "thiserror",
  "utoipa",
@@ -962,6 +963,7 @@ name = "entity"
 version = "0.1.0"
 dependencies = [
  "sea-orm",
+ "shared",
 ]
 
 [[package]]
@@ -1895,7 +1897,10 @@ name = "migration"
 version = "0.1.0"
 dependencies = [
  "async-std",
+ "entity",
  "sea-orm-migration",
+ "shared",
+ "uuid",
 ]
 
 [[package]]
@@ -3080,6 +3085,7 @@ dependencies = [
  "sea-orm",
  "serde",
  "serde_json",
+ "shared",
  "sqlx",
  "strum 0.27.1",
  "thiserror",
@@ -3123,6 +3129,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f40ca3c46823713e0d4209592e8d6e826aa57e928f09752619fc696c499637f6"
 dependencies = [
  "lazy_static",
+]
+
+[[package]]
+name = "shared"
+version = "0.1.0"
+dependencies = [
+ "argon2",
+ "serde",
+ "strum 0.27.1",
+ "utoipa",
 ]
 
 [[package]]
@@ -4027,12 +4043,14 @@ dependencies = [
 
 [[package]]
 name = "uuid"
-version = "1.16.0"
+version = "1.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "458f7a779bf54acc9f347480ac654f68407d3aab21269a6e3c9f922acd9e2da9"
+checksum = "3cf4199d1e5d15ddd86a694e4d0dffa9c323ce759fea589f00fef9d81cc1931d"
 dependencies = [
  "getrandom 0.3.2",
+ "js-sys",
  "serde",
+ "wasm-bindgen",
 ]
 
 [[package]]

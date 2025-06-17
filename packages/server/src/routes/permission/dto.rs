@@ -15,6 +15,7 @@ pub struct CreatePermissionDto {
     pub kind: String,
     pub code: String,
     pub description: Option<String>,
+    pub parent_id: Option<Uuid>,
 }
 
 impl From<CreatePermissionDto> for CreatePermissionParams {
@@ -23,6 +24,7 @@ impl From<CreatePermissionDto> for CreatePermissionParams {
             kind: dto.kind,
             code: dto.code,
             description: dto.description,
+            parent_id: dto.parent_id,
         }
     }
 }

@@ -1,3 +1,4 @@
+use shared::utils::verify_password;
 use uuid::Uuid;
 
 use crate::{
@@ -12,7 +13,6 @@ use crate::{
         role::RoleService,
         user::UserService,
     },
-    utils::password::verify_password,
 };
 
 pub struct LoginParams {

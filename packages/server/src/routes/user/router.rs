@@ -8,10 +8,12 @@ use axum::{
     routing::{delete, get, post},
 };
 use sea_orm::DatabaseConnection;
+use shared::enums::OperationPermission;
 use utoipa::OpenApi;
 
 use crate::{
     dto::PaginatedQueryDto,
+    extractors::auth_session::AuthSession,
     response::{ApiResponse, PaginatedData, ResponseJson, ResponseJsonNull},
     result::ServerResult,
     routes::user::dto::DeleteUsersRequestDto,
@@ -42,8 +44,11 @@ pub(crate) fn init() -> Router {
 )]
 /// Query users
 pub async fn query_users(
+    session: AuthSession,
     Extension(conn): Extension<DatabaseConnection>,
 ) -> ServerResult<ApiResponse> {
+    session.assert_has_permission(OperationPermission::QueryUsers)?;
+
     let user_service = UserService::new(conn);
 
     let users = user_service.query_users_list().await?;
@@ -64,9 +69,12 @@ pub async fn query_users(
 )]
 /// Query users by page
 pub async fn query_users_by_page(
+    session: AuthSession,
     Extension(conn): Extension<DatabaseConnection>,
     Query(query): Query<PaginatedQuery<FilterUserDto>>,
 ) -> ServerResult<ApiResponse> {
+    session.assert_has_permission(OperationPermission::QueryUsers)?;
+
     let user_service = UserService::new(conn);
 
     let (users, total) = user_service.query_users_by_page(query).await?;
@@ -87,9 +95,12 @@ pub async fn query_users_by_page(
 )]
 /// Create user
 pub async fn create_user(
+    session: AuthSession,
     Extension(conn): Extension<DatabaseConnection>,
     Json(params): Json<CreateUserDto>,
 ) -> ServerResult<ApiResponse> {
+    session.assert_has_permission(OperationPermission::CreateUser)?;
+
     let user_service = UserService::new(conn);
 
     let user_id = user_service
@@ -115,9 +126,12 @@ pub async fn create_user(
     )
 )]
 pub async fn delete_users(
+    session: AuthSession,
     Extension(conn): Extension<DatabaseConnection>,
     Json(params): Json<DeleteUsersRequestDto>,
 ) -> ServerResult<ApiResponse> {
+    session.assert_has_permission(OperationPermission::DeleteUser)?;
+
     let user_service = UserService::new(conn);
 
     user_service.delete_users(params.into()).await?;

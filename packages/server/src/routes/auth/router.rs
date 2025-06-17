@@ -6,10 +6,15 @@ use axum::{
 };
 use axum_extra::{TypedHeader, extract::cookie::Cookie, headers::UserAgent};
 use sea_orm::DatabaseConnection;
+use shared::enums::OperationPermission;
+use time::Duration;
 use utoipa::OpenApi;
 
 use crate::{
-    extractors::auth_session::{AuthSession, SESSION_ID_KEY},
+    extractors::{
+        app_service::AppService,
+        auth_session::{AuthSession, SESSION_ID_KEY},
+    },
     response::{ApiResponse, Null, ResponseJson},
     result::ServerResult,
     routes::{
@@ -27,6 +32,7 @@ use super::dto::{AssignUserPermissionsDto, GroupTreePermissionsDto};
 #[openapi(paths(
     login,
     logout,
+    logout_all,
     assign_user_permissions,
     query_user_permissions,
     query_group_permissions,
@@ -39,6 +45,7 @@ pub(crate) fn init() -> Router {
     Router::new()
         .route("/login", post(login))
         .route("/logout", get(logout))
+        .route("/logoutAll", get(logout_all))
         .route("/assignUserPermissions", post(assign_user_permissions))
         .route("/queryUserPermissions", get(query_user_permissions))
         .route("/queryGroupPermissions", get(query_group_permissions))
@@ -95,8 +102,50 @@ pub async fn login(
         (status = OK, description = "ok", body = ResponseJson<Null>)
     )
 )]
-pub async fn logout(auth_session: AuthSession) -> ServerResult<ApiResponse> {
-    auth_session.logout().await?;
+pub async fn logout(
+    Extension(conn): Extension<DatabaseConnection>,
+    auth_session: AuthSession,
+) -> ServerResult<ApiResponse> {
+    let auth_service = AuthService::new(conn);
+    auth_service.logout(auth_session.session_id).await?;
+
+    let mut cookie = Cookie::new(SESSION_ID_KEY, "");
+    cookie.set_path("/");
+    cookie.set_http_only(true);
+    cookie.set_max_age(Duration::seconds(0));
+
+    let mut response = ApiResponse::default();
+    response.set_cookie(cookie);
+
+    Ok(ApiResponse::null())
+}
+
+/// Logout all
+#[utoipa::path(
+    operation_id = "logoutAll",
+    description = "LogoutAll",
+    get,
+    path = "/logoutAll",
+    responses(
+        (status = OK, description = "ok", body = ResponseJson<Null>)
+    )
+)]
+pub async fn logout_all(
+    auth_session: AuthSession,
+    auth_service: AppService<AuthService>,
+) -> ServerResult<ApiResponse> {
+    auth_service
+        .logout_all(auth_session.payload.user_id)
+        .await?;
+
+    let mut cookie = Cookie::new(SESSION_ID_KEY, "");
+    cookie.set_path("/");
+    cookie.set_http_only(true);
+    cookie.set_max_age(Duration::seconds(0));
+
+    let mut response = ApiResponse::default();
+    response.set_cookie(cookie);
+
     Ok(ApiResponse::null())
 }
 
@@ -112,10 +161,11 @@ pub async fn logout(auth_session: AuthSession) -> ServerResult<ApiResponse> {
     )
 )]
 pub async fn assign_user_permissions(
-    Extension(conn): Extension<DatabaseConnection>,
+    session: AuthSession,
+    auth_service: AppService<AuthService>,
     Json(params): Json<AssignUserPermissionsDto>,
 ) -> ServerResult<ApiResponse> {
-    let auth_service = AuthService::new(conn);
+    session.assert_has_permission(OperationPermission::AssignUserPermissions)?;
 
     auth_service.assign_user_permissions(params.into()).await?;
 
@@ -134,10 +184,11 @@ pub async fn assign_user_permissions(
     )
 )]
 pub async fn query_user_permissions(
-    Extension(conn): Extension<DatabaseConnection>,
+    session: AuthSession,
+    auth_service: AppService<AuthService>,
     Query(query): Query<QueryUserPermissionsDto>,
 ) -> ServerResult<ApiResponse> {
-    let auth_service = AuthService::new(conn);
+    session.assert_has_permission(OperationPermission::QueryUserPermissions)?;
 
     let res = auth_service.query_user_permissions(query.user_id).await?;
     let res = res.into_iter().map(PermissionDto::from).collect::<Vec<_>>();
@@ -157,10 +208,11 @@ pub async fn query_user_permissions(
     )
 )]
 pub async fn query_group_permissions(
-    Extension(conn): Extension<DatabaseConnection>,
+    session: AuthSession,
+    auth_service: AppService<AuthService>,
     Query(query): Query<QueryGroupPermissionsDto>,
 ) -> ServerResult<ApiResponse> {
-    let auth_service = AuthService::new(conn);
+    session.assert_has_permission(OperationPermission::QueryGroupPermissions)?;
 
     let res = auth_service.query_group_permissions(query.group_id).await?;
 
@@ -183,10 +235,11 @@ pub async fn query_group_permissions(
     )
 )]
 pub async fn query_department_permissions(
-    Extension(conn): Extension<DatabaseConnection>,
+    session: AuthSession,
+    auth_service: AppService<AuthService>,
     Query(query): Query<QueryDepartmentPermissionsDto>,
 ) -> ServerResult<ApiResponse> {
-    let auth_service = AuthService::new(conn);
+    session.assert_has_permission(OperationPermission::QueryDepartmentPermissions)?;
 
     let res = auth_service
         .query_department_permissions(query.department_id)

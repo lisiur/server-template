@@ -7,22 +7,77 @@ use http::request::Parts;
 use sea_orm::DatabaseConnection;
 use uuid::Uuid;
 
-use crate::result::ServerResult;
+use crate::{error::ServerExceptionCode, result::ServerResult};
+
 pub const SESSION_ID_KEY: &str = "id";
 
 #[derive(Debug)]
 pub struct AuthSession {
-    pub(self) conn: DatabaseConnection,
     pub session_id: Uuid,
     pub payload: SessionTokenPayload,
 }
 
 impl AuthSession {
-    pub async fn logout(&self) -> ServerResult<()> {
-        let auth_token_service = AuthTokenService::new(self.conn.clone());
-        auth_token_service
-            .delete_auth_token_by_id(self.session_id)
-            .await?;
+    #[allow(unused)]
+    pub fn has_permission(&self, permission_code: impl ToString) -> bool {
+        let permission_code = permission_code.to_string();
+        self.payload.permissions.contains(&permission_code)
+    }
+
+    #[allow(unused)]
+    pub fn assert_has_permission(&self, permission_code: impl ToString) -> ServerResult<()> {
+        if !self.has_permission(permission_code) {
+            return Err(ServerExceptionCode::Forbidden.into());
+        }
+
+        Ok(())
+    }
+
+    #[allow(unused)]
+    pub fn has_any_permissions(
+        &self,
+        permission_codes: impl IntoIterator<Item = impl ToString>,
+    ) -> bool {
+        for permission_code in permission_codes {
+            if self.has_permission(permission_code) {
+                return true;
+            }
+        }
+        false
+    }
+
+    #[allow(unused)]
+    pub fn assert_has_any_permissions(
+        &self,
+        permission_codes: impl IntoIterator<Item = impl ToString>,
+    ) -> ServerResult<()> {
+        if !self.has_any_permissions(permission_codes) {
+            return Err(ServerExceptionCode::Forbidden.into());
+        }
+        Ok(())
+    }
+
+    #[allow(unused)]
+    pub fn has_all_permissions(
+        &self,
+        permission_codes: impl IntoIterator<Item = impl ToString>,
+    ) -> bool {
+        for permission_code in permission_codes {
+            if !self.has_permission(permission_code) {
+                return false;
+            }
+        }
+        true
+    }
+
+    #[allow(unused)]
+    pub fn assert_has_all_permissions(
+        &self,
+        permission_codes: impl IntoIterator<Item = impl ToString>,
+    ) -> ServerResult<()> {
+        if !self.has_all_permissions(permission_codes) {
+            return Err(ServerExceptionCode::Forbidden.into());
+        }
         Ok(())
     }
 }
@@ -54,7 +109,6 @@ where
         let payload = serde_json::from_str::<SessionTokenPayload>(&auth_token.payload).unwrap();
 
         Ok(AuthSession {
-            conn: conn.clone(),
             session_id,
             payload,
         })

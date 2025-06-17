@@ -1,8 +1,7 @@
 use chrono::{DateTime, Utc};
 use entity::users;
 use serde::{Deserialize, Serialize};
-use strum::{Display, EnumString};
-use utoipa::ToSchema;
+use shared::enums::Gender;
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -38,16 +37,4 @@ impl From<users::Model> for User {
             updated_at: value.updated_at.into(),
         }
     }
-}
-
-#[derive(
-    Clone, Debug, PartialEq, Eq, Serialize, Deserialize, EnumString, Display, Default, ToSchema,
-)]
-#[serde(rename_all = "camelCase")]
-#[strum(serialize_all = "snake_case")]
-pub enum Gender {
-    #[default]
-    Unknown,
-    Male,
-    Female,
 }

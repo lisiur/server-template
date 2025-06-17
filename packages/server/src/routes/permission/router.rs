@@ -5,10 +5,12 @@ use axum::{
     routing::{delete, get, post},
 };
 use sea_orm::DatabaseConnection;
+use shared::enums::OperationPermission;
 use utoipa::OpenApi;
 
 use crate::{
     dto::PaginatedQueryDto,
+    extractors::auth_session::AuthSession,
     response::{ApiResponse, PaginatedData, ResponseJson, ResponseJsonNull},
     result::ServerResult,
     routes::permission::dto::{
@@ -39,9 +41,12 @@ pub(crate) fn init() -> Router {
     )
 )]
 pub async fn query_permissions_by_page(
+    session: AuthSession,
     Extension(conn): Extension<DatabaseConnection>,
     Query(query): Query<PaginatedQuery<FilterPermissionsDto>>,
 ) -> ServerResult<ApiResponse> {
+    session.assert_has_permission(OperationPermission::QueryPermissions)?;
+
     let permission_service = PermissionService::new(conn);
 
     let (records, total) = permission_service.query_permissions_by_page(query).await?;
@@ -66,9 +71,12 @@ pub async fn query_permissions_by_page(
     )
 )]
 pub async fn create_permission(
+    session: AuthSession,
     Extension(conn): Extension<DatabaseConnection>,
     Json(params): Json<CreatePermissionDto>,
 ) -> ServerResult<ApiResponse> {
+    session.assert_has_permission(OperationPermission::CreatePermission)?;
+
     let permission_service = PermissionService::new(conn);
 
     let user_id = permission_service.create_permission(params.into()).await?;
@@ -88,9 +96,12 @@ pub async fn create_permission(
     )
 )]
 pub async fn delete_permissions(
+    session: AuthSession,
     Extension(conn): Extension<DatabaseConnection>,
     Json(params): Json<DeletePermissionsRequestDto>,
 ) -> ServerResult<ApiResponse> {
+    session.assert_has_permission(OperationPermission::DeletePermission)?;
+
     let permission_service = PermissionService::new(conn);
 
     permission_service.delete_permissions(params.into()).await?;

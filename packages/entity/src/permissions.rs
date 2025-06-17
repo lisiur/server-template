@@ -8,9 +8,11 @@ pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
     pub kind: String,
+    pub built_in: bool,
     #[sea_orm(unique)]
     pub code: String,
     pub description: Option<String>,
+    pub parent_id: Option<Uuid>,
     pub is_deleted: bool,
     pub created_at: DateTimeWithTimeZone,
     pub updated_at: DateTimeWithTimeZone,
@@ -18,6 +20,14 @@ pub struct Model {
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
+    #[sea_orm(
+        belongs_to = "Entity",
+        from = "Column::ParentId",
+        to = "Column::Id",
+        on_update = "NoAction",
+        on_delete = "NoAction"
+    )]
+    SelfRef,
     #[sea_orm(has_many = "super::relation_departments_permissions::Entity")]
     RelationDepartmentsPermissions,
     #[sea_orm(has_many = "super::relation_groups_permissions::Entity")]

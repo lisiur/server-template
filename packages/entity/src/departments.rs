@@ -21,8 +21,8 @@ pub enum Relation {
         belongs_to = "Entity",
         from = "Column::ParentId",
         to = "Column::Id",
-        on_update = "Cascade",
-        on_delete = "Cascade"
+        on_update = "NoAction",
+        on_delete = "NoAction"
     )]
     SelfRef,
     #[sea_orm(has_many = "super::relation_departments_permissions::Entity")]

@@ -14,4 +14,13 @@ impl AuthService {
 
         Ok(())
     }
+
+    pub async fn logout_all(&self, user_id: Uuid) -> AppResult<()> {
+        let auth_token_service = AuthTokenService::new(self.0.clone());
+        auth_token_service
+            .delete_auth_token_by_ref_id(user_id)
+            .await?;
+
+        Ok(())
+    }
 }

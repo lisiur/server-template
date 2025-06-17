@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use entity::{
     permissions, relation_departments_permissions, relation_groups_permissions,
     relation_permissions_roles, relation_permissions_users,
@@ -44,7 +46,12 @@ impl PermissionService {
             .all(&self.0)
             .await?;
 
-        Ok(permissions.into_iter().map(Permission::from).collect())
+        let flatten_permissions = self.flat_permissions(permissions).await?;
+
+        Ok(flatten_permissions
+            .into_iter()
+            .map(Permission::from)
+            .collect())
     }
 
     pub async fn query_permissions_by_role_id(&self, role_id: Uuid) -> AppResult<Vec<Permission>> {
@@ -54,7 +61,12 @@ impl PermissionService {
             .all(&self.0)
             .await?;
 
-        Ok(permissions.into_iter().map(Permission::from).collect())
+        let flatten_permissions = self.flat_permissions(permissions).await?;
+
+        Ok(flatten_permissions
+            .into_iter()
+            .map(Permission::from)
+            .collect())
     }
 
     pub async fn query_permissions_by_roles_id_list(
@@ -67,7 +79,12 @@ impl PermissionService {
             .all(&self.0)
             .await?;
 
-        Ok(permissions.into_iter().map(Permission::from).collect())
+        let flatten_permissions = self.flat_permissions(permissions).await?;
+
+        Ok(flatten_permissions
+            .into_iter()
+            .map(Permission::from)
+            .collect())
     }
 
     pub async fn query_permissions_by_group_id(
@@ -80,7 +97,12 @@ impl PermissionService {
             .all(&self.0)
             .await?;
 
-        Ok(permissions.into_iter().map(Permission::from).collect())
+        let flatten_permissions = self.flat_permissions(permissions).await?;
+
+        Ok(flatten_permissions
+            .into_iter()
+            .map(Permission::from)
+            .collect())
     }
 
     pub async fn query_permissions_by_groups_id_list(
@@ -93,7 +115,12 @@ impl PermissionService {
             .all(&self.0)
             .await?;
 
-        Ok(permissions.into_iter().map(Permission::from).collect())
+        let flatten_permissions = self.flat_permissions(permissions).await?;
+
+        Ok(flatten_permissions
+            .into_iter()
+            .map(Permission::from)
+            .collect())
     }
 
     pub async fn query_permissions_by_department_id(
@@ -106,7 +133,12 @@ impl PermissionService {
             .all(&self.0)
             .await?;
 
-        Ok(permissions.into_iter().map(Permission::from).collect())
+        let flatten_permissions = self.flat_permissions(permissions).await?;
+
+        Ok(flatten_permissions
+            .into_iter()
+            .map(Permission::from)
+            .collect())
     }
 
     pub async fn query_permissions_by_departments_id_list(
@@ -121,7 +153,40 @@ impl PermissionService {
             .all(&self.0)
             .await?;
 
-        Ok(permissions.into_iter().map(Permission::from).collect())
+        let flatten_permissions = self.flat_permissions(permissions).await?;
+
+        Ok(flatten_permissions
+            .into_iter()
+            .map(Permission::from)
+            .collect())
+    }
+
+    async fn flat_permissions(
+        &self,
+        permissions: Vec<permissions::Model>,
+    ) -> AppResult<Vec<permissions::Model>> {
+        let (permissions, permission_groups): (Vec<permissions::Model>, Vec<permissions::Model>) =
+            permissions.into_iter().partition(|x| x.parent_id.is_some());
+
+        let permission_groups_id_list = permission_groups
+            .into_iter()
+            .map(|x| x.id)
+            .collect::<Vec<_>>();
+        let sub_permissions = if permission_groups_id_list.is_empty() {
+            vec![]
+        } else {
+            permissions::Entity::find()
+                .filter(permissions::Column::ParentId.is_in(permission_groups_id_list))
+                .all(&self.0)
+                .await?
+        };
+
+        let mut permission_map = HashMap::<Uuid, permissions::Model>::new();
+        for role in [permissions, sub_permissions].concat() {
+            permission_map.insert(role.id, role);
+        }
+
+        Ok(permission_map.into_values().collect())
     }
 }
 

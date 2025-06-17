@@ -8,7 +8,9 @@ pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
     pub name: String,
+    pub built_in: bool,
     pub description: Option<String>,
+    pub parent_id: Option<Uuid>,
     pub is_deleted: bool,
     pub created_at: DateTimeWithTimeZone,
     pub updated_at: DateTimeWithTimeZone,
@@ -24,6 +26,14 @@ pub enum Relation {
     RelationPermissionsRoles,
     #[sea_orm(has_many = "super::relation_roles_users::Entity")]
     RelationRolesUsers,
+    #[sea_orm(
+        belongs_to = "Entity",
+        from = "Column::ParentId",
+        to = "Column::Id",
+        on_update = "NoAction",
+        on_delete = "NoAction"
+    )]
+    SelfRef,
 }
 
 impl Related<super::relation_departments_roles::Entity> for Entity {

@@ -50,15 +50,24 @@ impl AuthService {
         // - roles of user related groups
         // - roles of user departments
         let mut user_related_roles = HashMap::new();
+
+        // roles of user
         let mut user_roles = role_service.query_roles_by_user_id(user_id).await?;
+
+        // roles of user related groups
         let user_related_groups_roles = role_service
             .query_roles_by_groups_id_list(user_related_groups_id_list.clone())
             .await?;
+
+        // roles of user departments
         let user_departments_roles = role_service
             .query_roles_by_departments_id_list(user_departments_id_list.clone())
             .await?;
+
+        // combine them all
         user_roles.extend(user_related_groups_roles);
         user_roles.extend(user_departments_roles);
+
         for role in user_roles {
             user_related_roles.entry(role.id).or_insert(role);
         }
@@ -74,18 +83,28 @@ impl AuthService {
         // - relations of user related groups
         // - relations of user departments
         let mut user_related_permissions = HashMap::new();
+
+        // permissions of user
         let mut user_permissions = permission_service
             .query_permissions_by_user_id(user_id)
             .await?;
+
+        // permissions of user related roles
         let user_related_roles_permissions = permission_service
             .query_permissions_by_roles_id_list(user_related_roles_id_list)
             .await?;
+
+        // permissions of user related groups
         let user_related_groups_permissions = permission_service
             .query_permissions_by_groups_id_list(user_related_groups_id_list)
             .await?;
+
+        // permissions of user departments
         let user_departments_permissions = permission_service
             .query_permissions_by_departments_id_list(user_departments_id_list)
             .await?;
+
+        // combine them all
         user_permissions.extend(user_related_roles_permissions);
         user_permissions.extend(user_related_groups_permissions);
         user_permissions.extend(user_departments_permissions);

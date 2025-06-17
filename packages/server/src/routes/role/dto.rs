@@ -36,6 +36,7 @@ impl From<Role> for RoleDto {
 pub struct CreateRoleRequestDto {
     pub name: String,
     pub description: Option<String>,
+    pub parent_id: Option<Uuid>,
 }
 
 impl From<CreateRoleRequestDto> for CreateRoleParams {
@@ -43,6 +44,7 @@ impl From<CreateRoleRequestDto> for CreateRoleParams {
         Self {
             name: dto.name,
             description: dto.description,
+            parent_id: dto.parent_id,
         }
     }
 }

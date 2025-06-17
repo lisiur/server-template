@@ -20,16 +20,16 @@ pub enum Relation {
         belongs_to = "super::departments::Entity",
         from = "Column::DepartmentId",
         to = "super::departments::Column::Id",
-        on_update = "Cascade",
-        on_delete = "Cascade"
+        on_update = "NoAction",
+        on_delete = "NoAction"
     )]
     Departments,
     #[sea_orm(
         belongs_to = "super::permissions::Entity",
         from = "Column::PermissionId",
         to = "super::permissions::Column::Id",
-        on_update = "Cascade",
-        on_delete = "Cascade"
+        on_update = "NoAction",
+        on_delete = "NoAction"
     )]
     Permissions,
 }

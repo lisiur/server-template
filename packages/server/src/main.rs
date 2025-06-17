@@ -21,9 +21,11 @@ mod settings;
 #[tokio::main]
 async fn main() -> ServerResult<()> {
     // Load .env
+    println!("Loading .env...");
     dotenvy::dotenv().ok();
 
     // Init settings
+    println!("Init settings...");
     let setting = Settings::init()?;
 
     // Set RUST_LOG
@@ -40,17 +42,17 @@ async fn main() -> ServerResult<()> {
     }
 
     // Init logger
+    println!("Init logger...");
     tracing_subscriber::fmt()
         .with_env_filter(EnvFilter::from_default_env())
         .init();
 
-    // Print info
-    println!("{}", Info);
-
     // Connect database
+    println!("Connecting database...");
     let db_conn: DatabaseConnection = Database::connect(&setting.database_url).await?;
 
     // Init app
+    println!("Apply migrations...");
     App::init(db_conn.clone()).await?;
 
     #[derive(OpenApi)]
@@ -69,6 +71,7 @@ async fn main() -> ServerResult<()> {
     struct ApiDoc;
 
     // Init router
+    println!("Registering routes...");
     let router = Router::new()
         .route(
             "/health",
@@ -92,6 +95,9 @@ async fn main() -> ServerResult<()> {
     let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", server_port))
         .await
         .unwrap();
+
+    // Print info
+    println!("{}", Info);
 
     // Start server
     axum::serve(listener, router)

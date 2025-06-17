@@ -5,10 +5,12 @@ use axum::{
     routing::{delete, get, patch, post},
 };
 use sea_orm::DatabaseConnection;
+use shared::enums::OperationPermission;
 use utoipa::OpenApi;
 
 use crate::{
     dto::PaginatedQueryDto,
+    extractors::{app_service::AppService, auth_session::AuthSession},
     response::{ApiResponse, Null, PaginatedData, ResponseJson},
     result::ServerResult,
     routes::department::dto::{
@@ -47,10 +49,11 @@ pub(crate) fn init() -> Router {
     )
 )]
 pub async fn query_departments_by_page(
-    Extension(conn): Extension<DatabaseConnection>,
+    session: AuthSession,
+    department_service: AppService<DepartmentService>,
     Query(query): Query<PaginatedQuery<FilterDepartmentsDto>>,
 ) -> ServerResult<ApiResponse> {
-    let department_service = DepartmentService::new(conn);
+    session.assert_has_permission(OperationPermission::QueryDepartments)?;
 
     let (records, total) = department_service.query_departments_by_page(query).await?;
     let records = records
@@ -73,9 +76,12 @@ pub async fn query_departments_by_page(
     )
 )]
 pub async fn create_department(
+    session: AuthSession,
     Extension(conn): Extension<DatabaseConnection>,
     Json(params): Json<CreateDepartmentRequestDto>,
 ) -> ServerResult<ApiResponse> {
+    session.assert_has_permission(OperationPermission::CreateDepartment)?;
+
     let department_service = DepartmentService::new(conn);
 
     let group_id = department_service.create_department(params.into()).await?;
@@ -95,9 +101,12 @@ pub async fn create_department(
     )
 )]
 pub async fn delete_departments(
+    session: AuthSession,
     Extension(conn): Extension<DatabaseConnection>,
     Json(params): Json<DeleteDepartmentsRequestDto>,
 ) -> ServerResult<ApiResponse> {
+    session.assert_has_permission(OperationPermission::DeleteDepartment)?;
+
     let department_service = DepartmentService::new(conn);
     department_service.delete_departments(params.into()).await?;
     Ok(ApiResponse::null())
@@ -115,9 +124,12 @@ pub async fn delete_departments(
     )
 )]
 pub async fn update_department(
+    session: AuthSession,
     Extension(conn): Extension<DatabaseConnection>,
     Json(params): Json<UpdateDepartmentRequestDto>,
 ) -> ServerResult<ApiResponse> {
+    session.assert_has_permission(OperationPermission::UpdateDepartment)?;
+
     let department_service = DepartmentService::new(conn);
     department_service.update_department(params.into()).await?;
     Ok(ApiResponse::null())

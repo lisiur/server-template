@@ -8,10 +8,12 @@ use axum::{
     routing::{delete, get, patch, post},
 };
 use sea_orm::DatabaseConnection;
+use shared::enums::OperationPermission;
 use utoipa::OpenApi;
 
 use crate::{
     dto::PaginatedQueryDto,
+    extractors::auth_session::AuthSession,
     response::{ApiResponse, Null, PaginatedData, ResponseJson},
     result::ServerResult,
     routes::group::dto::{CreateGroupResponseDto, DeleteGroupsRequestDto, UpdateGroupRequestDto},
@@ -43,9 +45,12 @@ pub(crate) fn init() -> Router {
     )
 )]
 pub async fn query_groups_by_page(
+    session: AuthSession,
     Extension(conn): Extension<DatabaseConnection>,
     Query(query): Query<PaginatedQuery<FilterGroupsDto>>,
 ) -> ServerResult<ApiResponse> {
+    session.assert_has_permission(OperationPermission::QueryGroups)?;
+
     let group_service = GroupService::new(conn);
 
     let (groups, total) = group_service.query_groups_by_page(query).await?;
@@ -66,9 +71,12 @@ pub async fn query_groups_by_page(
     )
 )]
 pub async fn create_group(
+    session: AuthSession,
     Extension(conn): Extension<DatabaseConnection>,
     Json(params): Json<CreateGroupRequestDto>,
 ) -> ServerResult<ApiResponse> {
+    session.assert_has_permission(OperationPermission::CreateGroup)?;
+
     let group_service = GroupService::new(conn);
 
     let group_id = group_service
@@ -95,9 +103,12 @@ pub async fn create_group(
     )
 )]
 pub async fn delete_groups(
+    session: AuthSession,
     Extension(conn): Extension<DatabaseConnection>,
     Json(params): Json<DeleteGroupsRequestDto>,
 ) -> ServerResult<ApiResponse> {
+    session.assert_has_permission(OperationPermission::DeleteGroup)?;
+
     let group_service = GroupService::new(conn);
     group_service.delete_groups(params.into()).await?;
     Ok(ApiResponse::null())
@@ -115,9 +126,12 @@ pub async fn delete_groups(
     )
 )]
 pub async fn update_group(
+    session: AuthSession,
     Extension(conn): Extension<DatabaseConnection>,
     Json(params): Json<UpdateGroupRequestDto>,
 ) -> ServerResult<ApiResponse> {
+    session.assert_has_permission(OperationPermission::UpdateGroup)?;
+
     let group_service = GroupService::new(conn);
     group_service.update_group(params.into()).await?;
     Ok(ApiResponse::null())

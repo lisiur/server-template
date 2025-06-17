@@ -13,12 +13,16 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .col(uuid(Permissions::Id))
                     .col(string(Permissions::Kind))
+                    .col(boolean(Permissions::BuiltIn))
                     .col(string(Permissions::Code).unique_key())
                     .col(string_null(Permissions::Description))
+                    .col(uuid_null(Permissions::ParentId))
                     .to_owned(),
             )
             .await?
             .create_index(vec![Permissions::Kind])
+            .await?
+            .create_foreign_key(Permissions::ParentId, Permissions::Table, Permissions::Id)
             .await?;
 
         Ok(())
@@ -38,6 +42,8 @@ pub enum Permissions {
     Table,
     Id,
     Kind,
+    BuiltIn,
     Code,
     Description,
+    ParentId,
 }

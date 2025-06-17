@@ -9,7 +9,7 @@ use sea_orm::DatabaseConnection;
 use utoipa::OpenApi;
 
 use crate::{
-    error::{ServerException, ServerExceptionCode},
+    error::ServerExceptionCode,
     extractors::auth_session::AuthSession,
     response::{ApiResponse, Null, ResponseJson},
     result::ServerResult,
@@ -19,25 +19,25 @@ use crate::{
 use super::dto::SessionInfoDto;
 
 #[derive(OpenApi)]
-#[openapi(paths(query_session_info, query_active_sessions, delete_session))]
+#[openapi(paths(query_session, query_active_sessions, delete_session))]
 pub(crate) struct ApiDoc;
 
 pub(crate) fn init() -> Router {
     Router::new()
-        .route("/querySessionInfo", get(query_session_info))
+        .route("/querySession", get(query_session))
         .route("/queryActiveSessions", get(query_active_sessions))
         .route("/deleteSession", delete(delete_session))
 }
 
 #[utoipa::path(
     get,
-    path = "/querySessionInfo",
+    path = "/querySession",
     responses(
         (status = OK, description = "ok", body = ResponseJson<SessionInfoDto>)
     )
 )]
-/// Query session info
-pub async fn query_session_info(
+/// Query session
+pub async fn query_session(
     Extension(conn): Extension<DatabaseConnection>,
     auth_session: AuthSession,
 ) -> ServerResult<ApiResponse> {
@@ -91,8 +91,8 @@ pub async fn query_active_sessions(
 )]
 /// Delete session
 pub async fn delete_session(
-    Extension(conn): Extension<DatabaseConnection>,
     auth_session: AuthSession,
+    Extension(conn): Extension<DatabaseConnection>,
     Query(query): Query<DeleteSessionDto>,
 ) -> ServerResult<impl IntoResponse> {
     let auth_token_service = AuthTokenService::new(conn);
@@ -101,12 +101,12 @@ pub async fn delete_session(
         return Ok(ApiResponse::null());
     };
 
-    let user_id = auth_session.payload.user_id;
+    let valid_user_id = auth_session.payload.user_id;
 
-    if user_id == target.ref_id {
+    if valid_user_id == target.ref_id {
         auth_token_service.delete_auth_token_by_id(query.id).await?;
     } else {
-        return ServerException::new(ServerExceptionCode::Forbidden).into();
+        return Err(ServerExceptionCode::Forbidden.into());
     }
 
     Ok(ApiResponse::null())

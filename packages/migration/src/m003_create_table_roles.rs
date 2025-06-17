@@ -13,9 +13,13 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .col(uuid(Roles::Id))
                     .col(string(Roles::Name))
+                    .col(boolean(Roles::BuiltIn))
                     .col(string_null(Roles::Description))
+                    .col(uuid_null(Roles::ParentId))
                     .to_owned(),
             )
+            .await?
+            .create_foreign_key(Roles::ParentId, Roles::Table, Roles::Id)
             .await?;
 
         Ok(())
@@ -35,5 +39,7 @@ pub enum Roles {
     Table,
     Id,
     Name,
+    BuiltIn,
     Description,
+    ParentId,
 }

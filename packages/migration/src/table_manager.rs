@@ -81,8 +81,8 @@ impl<'a> TableManager<'a> {
                     .name(format!("fk_{}_{}", self.table_name, column.to_string()))
                     .from(self.table_ref.clone(), column)
                     .to(foreign_table, foreign_column)
-                    .on_delete(ForeignKeyAction::Cascade)
-                    .on_update(ForeignKeyAction::Cascade)
+                    .on_delete(ForeignKeyAction::NoAction)
+                    .on_update(ForeignKeyAction::NoAction)
                     .to_owned(),
             )
             .await?;
