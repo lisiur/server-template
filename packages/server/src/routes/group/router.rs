@@ -2,11 +2,7 @@ use app::{
     services::group::{GroupService, create_group::CreateGroupParams},
     utils::query::PaginatedQuery,
 };
-use axum::{
-    Extension, Json, Router,
-    extract::Query,
-    routing::{delete, get, patch, post},
-};
+use axum::{Extension, Json, extract::Query};
 use sea_orm::DatabaseConnection;
 use shared::enums::OperationPermission;
 use utoipa::OpenApi;
@@ -14,6 +10,7 @@ use utoipa::OpenApi;
 use crate::{
     dto::PaginatedQueryDto,
     extractors::auth_session::AuthSession,
+    init_router,
     response::{ApiResponse, Null, PaginatedData, ResponseJson},
     result::ServerResult,
     routes::group::dto::{CreateGroupResponseDto, DeleteGroupsRequestDto, UpdateGroupRequestDto},
@@ -24,14 +21,12 @@ use super::dto::{CreateGroupRequestDto, FilterGroupsDto, GroupDto};
 #[derive(OpenApi)]
 #[openapi(paths(create_group, query_groups_by_page, delete_groups, update_group))]
 pub(crate) struct ApiDoc;
-
-pub(crate) fn init() -> Router {
-    Router::new()
-        .route("/createGroup", post(create_group))
-        .route("/queryGroupsByPage", get(query_groups_by_page))
-        .route("/deleteGroups", delete(delete_groups))
-        .route("/updateGroup", patch(update_group))
-}
+init_router!(
+    create_group,
+    query_groups_by_page,
+    delete_groups,
+    update_group
+);
 
 /// Query groups by page
 #[utoipa::path(

@@ -1,9 +1,5 @@
 use app::{services::permission::PermissionService, utils::query::PaginatedQuery};
-use axum::{
-    Extension, Json, Router,
-    extract::Query,
-    routing::{delete, get, post},
-};
+use axum::{Extension, Json, extract::Query};
 use sea_orm::DatabaseConnection;
 use shared::enums::OperationPermission;
 use utoipa::OpenApi;
@@ -11,6 +7,7 @@ use utoipa::OpenApi;
 use crate::{
     dto::PaginatedQueryDto,
     extractors::auth_session::AuthSession,
+    init_router,
     response::{ApiResponse, PaginatedData, ResponseJson, ResponseJsonNull},
     result::ServerResult,
     routes::permission::dto::{
@@ -19,15 +16,13 @@ use crate::{
 };
 
 #[derive(OpenApi)]
-#[openapi(paths(create_permission, query_permissions_by_page))]
+#[openapi(paths(create_permission, query_permissions_by_page, delete_permissions))]
 pub(crate) struct ApiDoc;
-
-pub(crate) fn init() -> Router {
-    Router::new()
-        .route("/createPermission", post(create_permission))
-        .route("/queryPermissionsByPage", get(query_permissions_by_page))
-        .route("/deletePermissions", delete(delete_permissions))
-}
+init_router!(
+    create_permission,
+    query_permissions_by_page,
+    delete_permissions
+);
 
 /// Query permissions by page
 #[utoipa::path(

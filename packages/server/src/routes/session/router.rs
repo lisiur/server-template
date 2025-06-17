@@ -1,16 +1,12 @@
 use app::services::{auth_token::AuthTokenService, user::UserService};
-use axum::{
-    Extension, Router,
-    extract::Query,
-    response::IntoResponse,
-    routing::{delete, get},
-};
+use axum::{Extension, extract::Query, response::IntoResponse};
 use sea_orm::DatabaseConnection;
 use utoipa::OpenApi;
 
 use crate::{
     error::ServerExceptionCode,
     extractors::auth_session::AuthSession,
+    init_router,
     response::{ApiResponse, Null, ResponseJson},
     result::ServerResult,
     routes::session::dto::{DeleteSessionDto, SessionDto},
@@ -21,13 +17,7 @@ use super::dto::SessionInfoDto;
 #[derive(OpenApi)]
 #[openapi(paths(query_session, query_active_sessions, delete_session))]
 pub(crate) struct ApiDoc;
-
-pub(crate) fn init() -> Router {
-    Router::new()
-        .route("/querySession", get(query_session))
-        .route("/queryActiveSessions", get(query_active_sessions))
-        .route("/deleteSession", delete(delete_session))
-}
+init_router!(query_session, query_active_sessions, delete_session);
 
 #[utoipa::path(
     get,

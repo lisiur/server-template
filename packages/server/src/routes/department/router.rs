@@ -1,9 +1,5 @@
 use app::{services::department::DepartmentService, utils::query::PaginatedQuery};
-use axum::{
-    Extension, Json, Router,
-    extract::Query,
-    routing::{delete, get, patch, post},
-};
+use axum::{Extension, Json, extract::Query};
 use sea_orm::DatabaseConnection;
 use shared::enums::OperationPermission;
 use utoipa::OpenApi;
@@ -11,6 +7,7 @@ use utoipa::OpenApi;
 use crate::{
     dto::PaginatedQueryDto,
     extractors::{app_service::AppService, auth_session::AuthSession},
+    init_router,
     response::{ApiResponse, Null, PaginatedData, ResponseJson},
     result::ServerResult,
     routes::department::dto::{
@@ -28,14 +25,12 @@ use super::dto::{CreateDepartmentRequestDto, DepartmentDto, FilterDepartmentsDto
     update_department
 ))]
 pub(crate) struct ApiDoc;
-
-pub(crate) fn init() -> Router {
-    Router::new()
-        .route("/createDepartment", post(create_department))
-        .route("/queryDepartmentsByPage", get(query_departments_by_page))
-        .route("/deleteDepartments", delete(delete_departments))
-        .route("/updateDepartment", patch(update_department))
-}
+init_router!(
+    create_department,
+    query_departments_by_page,
+    delete_departments,
+    update_department
+);
 
 /// Query departments by page
 #[utoipa::path(

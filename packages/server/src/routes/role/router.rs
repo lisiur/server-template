@@ -1,9 +1,5 @@
 use app::{services::role::RoleService, utils::query::PaginatedQuery};
-use axum::{
-    Extension, Json, Router,
-    extract::Query,
-    routing::{delete, get, patch, post},
-};
+use axum::{Extension, Json, extract::Query};
 use sea_orm::DatabaseConnection;
 use shared::enums::OperationPermission;
 use utoipa::OpenApi;
@@ -11,6 +7,7 @@ use utoipa::OpenApi;
 use crate::{
     dto::PaginatedQueryDto,
     extractors::auth_session::AuthSession,
+    init_router,
     response::{ApiResponse, Null, PaginatedData, ResponseJson, ResponseJsonNull},
     result::ServerResult,
     routes::{
@@ -24,14 +21,7 @@ use super::dto::{CreateRoleRequestDto, RoleDto, RoleFilterDto};
 #[derive(OpenApi)]
 #[openapi(paths(query_roles_by_page, create_role, delete_roles, update_role))]
 pub(crate) struct ApiDoc;
-
-pub(crate) fn init() -> Router {
-    Router::new()
-        .route("/queryRolesByPage", get(query_roles_by_page))
-        .route("/createRole", post(create_role))
-        .route("/deleteRoles", delete(delete_roles))
-        .route("/updateRole", patch(update_role))
-}
+init_router!(query_roles_by_page, create_role, delete_roles, update_role);
 
 /// Query roles by page
 #[utoipa::path(

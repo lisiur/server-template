@@ -2,11 +2,7 @@ use app::{
     services::user::{UserService, create_user::CreateUserParams},
     utils::query::PaginatedQuery,
 };
-use axum::{
-    Extension, Json, Router,
-    extract::Query,
-    routing::{delete, get, post},
-};
+use axum::{Extension, Json, extract::Query};
 use sea_orm::DatabaseConnection;
 use shared::enums::OperationPermission;
 use utoipa::OpenApi;
@@ -14,6 +10,7 @@ use utoipa::OpenApi;
 use crate::{
     dto::PaginatedQueryDto,
     extractors::auth_session::AuthSession,
+    init_router,
     response::{ApiResponse, PaginatedData, ResponseJson, ResponseJsonNull},
     result::ServerResult,
     routes::user::dto::DeleteUsersRequestDto,
@@ -22,27 +19,19 @@ use crate::{
 use super::dto::{CreateUserDto, FilterUserDto, UserDto};
 
 #[derive(OpenApi)]
-#[openapi(paths(query_users, create_user, query_users_by_page))]
+#[openapi(paths(query_users, create_user, query_users_by_page, delete_users))]
 pub(crate) struct ApiDoc;
+init_router!(query_users, create_user, query_users_by_page, delete_users);
 
-pub(crate) fn init() -> Router {
-    Router::new()
-        .route("/listUsers", get(query_users))
-        .route("/createUser", post(create_user))
-        .route("/queryUsersByPage", get(query_users_by_page))
-        .route("/deleteUsers", delete(delete_users))
-}
-
+/// Query users
 #[utoipa::path(
-    operation_id = "listUsers",
-    description = "List users",
+    operation_id = "queryUsers",
     get,
-    path = "/listUsers",
+    path = "/queryUsers",
     responses(
         (status = OK, description = "ok", body = ResponseJson<Vec<UserDto>>)
     )
 )]
-/// Query users
 pub async fn query_users(
     session: AuthSession,
     Extension(conn): Extension<DatabaseConnection>,
@@ -57,9 +46,9 @@ pub async fn query_users(
     Ok(ApiResponse::json(users))
 }
 
+/// Query users by page
 #[utoipa::path(
     operation_id = "queryUsersByPage",
-    description = "Query users by page",
     get,
     path = "/queryUsersByPage",
     params(PaginatedQueryDto, FilterUserDto),
@@ -67,7 +56,6 @@ pub async fn query_users(
         (status = OK, description = "ok", body = ResponseJson<PaginatedData<UserDto>>)
     )
 )]
-/// Query users by page
 pub async fn query_users_by_page(
     session: AuthSession,
     Extension(conn): Extension<DatabaseConnection>,
@@ -83,9 +71,9 @@ pub async fn query_users_by_page(
     Ok(ApiResponse::json(PaginatedData { records, total }))
 }
 
+/// Create user
 #[utoipa::path(
     operation_id = "createUser",
-    description = "Create user",
     post,
     path = "/createUser",
     request_body = CreateUserDto,
@@ -93,7 +81,6 @@ pub async fn query_users_by_page(
         (status = OK, description = "ok", body = ResponseJson<Uuid>)
     )
 )]
-/// Create user
 pub async fn create_user(
     session: AuthSession,
     Extension(conn): Extension<DatabaseConnection>,
@@ -117,7 +104,6 @@ pub async fn create_user(
 /// Delete users
 #[utoipa::path(
     operation_id = "deleteUsers",
-    description = "Delete users",
     delete,
     path = "/deleteUsers",
     request_body = DeleteUsersRequestDto,

@@ -8,6 +8,7 @@ use tracing_subscriber::EnvFilter;
 use utoipa::OpenApi;
 use utoipa_scalar::{Scalar, Servable};
 
+mod api_router;
 mod dto;
 mod error;
 mod extractors;
@@ -17,6 +18,7 @@ mod response;
 mod result;
 mod routes;
 mod settings;
+mod utils;
 
 #[tokio::main]
 async fn main() -> ServerResult<()> {

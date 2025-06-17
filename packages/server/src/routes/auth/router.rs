@@ -1,9 +1,5 @@
 use app::services::auth::AuthService;
-use axum::{
-    Extension, Json, Router,
-    extract::Query,
-    routing::{get, post},
-};
+use axum::{Extension, Json, extract::Query};
 use axum_extra::{TypedHeader, extract::cookie::Cookie, headers::UserAgent};
 use sea_orm::DatabaseConnection;
 use shared::enums::OperationPermission;
@@ -15,6 +11,7 @@ use crate::{
         app_service::AppService,
         auth_session::{AuthSession, SESSION_ID_KEY},
     },
+    init_router,
     response::{ApiResponse, Null, ResponseJson},
     result::ServerResult,
     routes::{
@@ -39,21 +36,15 @@ use super::dto::{AssignUserPermissionsDto, GroupTreePermissionsDto};
     query_department_permissions,
 ))]
 pub(crate) struct ApiDoc;
-
-/// Assign user permissions
-pub(crate) fn init() -> Router {
-    Router::new()
-        .route("/login", post(login))
-        .route("/logout", get(logout))
-        .route("/logoutAll", get(logout_all))
-        .route("/assignUserPermissions", post(assign_user_permissions))
-        .route("/queryUserPermissions", get(query_user_permissions))
-        .route("/queryGroupPermissions", get(query_group_permissions))
-        .route(
-            "/queryDepartmentPermissions",
-            get(query_department_permissions),
-        )
-}
+init_router!(
+    login,
+    logout,
+    logout_all,
+    assign_user_permissions,
+    query_user_permissions,
+    query_group_permissions,
+    query_department_permissions
+);
 
 /// Login
 #[utoipa::path(
