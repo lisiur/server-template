@@ -22,7 +22,7 @@ pub enum AppError {
 pub enum AppException {
     RoleNotFound,
     UserNotFound,
-    PasswordError,
+    AuthenticationFailed,
     InvalidCredentials,
     DepartmentNotFound,
     GroupNotFound,

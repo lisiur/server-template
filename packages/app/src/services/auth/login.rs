@@ -37,7 +37,7 @@ impl AuthService {
         let password_valid = verify_password(&params.password, &password_digest);
 
         if !password_valid {
-            return Err(AppException::PasswordError.into());
+            return Err(AppException::AuthenticationFailed.into());
         }
 
         let permissions = auth_service.query_user_permissions(user.id).await?;

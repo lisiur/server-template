@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use app::error::AppError;
+use app::error::{AppError, AppException};
 use axum::response::{IntoResponse, Response};
 use http::StatusCode;
 use sea_orm::{DbErr, SqlxError};
@@ -14,7 +14,7 @@ pub enum ServerError {
     #[error("Exception: {0}")]
     Exception(#[from] ServerException),
 
-    #[error("App error: {0}")]
+    #[error("{0}")]
     App(#[from] AppError),
 
     #[error("IO error: {0}")]
@@ -40,6 +40,13 @@ impl ServerError {
                 ServerExceptionCode::Unauthorized => StatusCode::UNAUTHORIZED,
                 ServerExceptionCode::Forbidden => StatusCode::FORBIDDEN,
                 ServerExceptionCode::InternalServerError => StatusCode::INTERNAL_SERVER_ERROR,
+            },
+            &Self::App(err) => match err {
+                &AppError::Exception(ref exception) => match exception {
+                    &AppException::AuthenticationFailed => StatusCode::UNAUTHORIZED,
+                    _ => StatusCode::INTERNAL_SERVER_ERROR,
+                },
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
             },
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         }
