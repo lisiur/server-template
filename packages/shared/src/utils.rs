@@ -2,6 +2,13 @@ use argon2::{
     Argon2,
     password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString, rand_core::OsRng},
 };
+use base64::{Engine, prelude::BASE64_STANDARD};
+use rsa::{
+    Pkcs1v15Encrypt, RsaPrivateKey, RsaPublicKey,
+    pkcs1v15::{Signature, SigningKey, VerifyingKey},
+    signature::{SignatureEncoding, SignerMut, Verifier},
+};
+use sha2::Sha256;
 
 pub fn hash_password(password: &str) -> String {
     let password = password.as_bytes();
@@ -19,4 +26,76 @@ pub fn verify_password(password: &str, password_hash: &str) -> bool {
     Argon2::default()
         .verify_password(password, &parsed_hash)
         .is_ok()
+}
+
+pub fn sign_rsa(priv_key: &RsaPrivateKey, plaintext: &[u8]) -> Result<Vec<u8>, anyhow::Error> {
+    let mut signing_key = SigningKey::<Sha256>::new(priv_key.to_owned());
+    let signature = signing_key.sign(plaintext);
+    let signature = signature.to_bytes().to_vec();
+
+    Ok(signature)
+}
+
+pub fn verify_rsa(
+    pub_key: &RsaPublicKey,
+    msg: &str,
+    signature: &[u8],
+) -> Result<(), anyhow::Error> {
+    let verifying_key = VerifyingKey::<Sha256>::new(pub_key.to_owned());
+    let signature = Signature::try_from(signature)?;
+    verifying_key.verify(msg.as_bytes(), &signature)?;
+
+    Ok(())
+}
+
+pub fn decrypt_rsa(priv_key: &RsaPrivateKey, ciphertext: &[u8]) -> Result<Vec<u8>, anyhow::Error> {
+    let plaintext = priv_key.decrypt(Pkcs1v15Encrypt, ciphertext)?;
+
+    Ok(plaintext)
+}
+
+pub fn decrypt_rsa_to_utf8(
+    priv_key: &RsaPrivateKey,
+    ciphertext: &[u8],
+) -> Result<String, anyhow::Error> {
+    let plaintext = decrypt_rsa(priv_key, ciphertext)?;
+    let plaintext = String::from_utf8(plaintext)?;
+
+    Ok(plaintext)
+}
+
+pub fn encrypt_rsa(pub_key: &RsaPublicKey, ciphertext: &[u8]) -> Result<Vec<u8>, anyhow::Error> {
+    let mut rng = rand::thread_rng();
+    let ciphertext = pub_key.encrypt(&mut rng, Pkcs1v15Encrypt, ciphertext)?;
+
+    Ok(ciphertext)
+}
+
+pub fn encrypt_rsa_to_utf8(
+    pub_key: &RsaPublicKey,
+    ciphertext: &[u8],
+) -> Result<String, anyhow::Error> {
+    let ciphertext = encrypt_rsa(pub_key, ciphertext)?;
+    let ciphertext = String::from_utf8(ciphertext)?;
+
+    Ok(ciphertext)
+}
+
+pub fn decode_base64_to_utf8(base64_str: &str) -> Result<String, anyhow::Error> {
+    let decoded = decode_base64(base64_str)?;
+    let decoded = String::from_utf8(decoded)?;
+
+    Ok(decoded)
+}
+
+pub fn decode_base64(base64_str: &str) -> Result<Vec<u8>, anyhow::Error> {
+    let decoded = BASE64_STANDARD.decode(base64_str.as_bytes())?;
+
+    Ok(decoded)
+}
+
+pub fn encode_base64(input: &[u8]) -> Result<String, anyhow::Error> {
+    let decoded = BASE64_STANDARD.encode(input);
+
+    Ok(decoded)
 }

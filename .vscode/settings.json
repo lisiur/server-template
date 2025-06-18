@@ -1,6 +1,7 @@
 {
   "cSpell.words": [
     "chrono",
+    "ciphertext",
     "codegen",
     "dotenv",
     "dotenvy",
@@ -9,6 +10,7 @@
     "jsonwebtoken",
     "Lisiur",
     "Pageable",
+    "pkcs",
     "plpgsql",
     "reqwest",
     "serde",

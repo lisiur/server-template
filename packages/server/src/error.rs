@@ -17,6 +17,9 @@ pub enum ServerError {
     #[error("App error: {0}")]
     App(#[from] AppError),
 
+    #[error("IO error: {0}")]
+    IO(#[from] std::io::Error),
+
     #[error("Database error: {0}")]
     Db(#[from] DbErr),
 

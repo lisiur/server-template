@@ -2,14 +2,13 @@ use app::{
     services::user::{UserService, create_user::CreateUserParams},
     utils::query::PaginatedQuery,
 };
-use axum::{Extension, Json, extract::Query};
-use sea_orm::DatabaseConnection;
+use axum::{Json, extract::Query};
 use shared::enums::OperationPermission;
 use utoipa::OpenApi;
 
 use crate::{
     dto::PaginatedQueryDto,
-    extractors::auth_session::AuthSession,
+    extractors::{app_service::AppService, auth_session::AuthSession, helper::Helper},
     init_router,
     response::{ApiResponse, PaginatedData, ResponseJson, ResponseJsonNull},
     result::ServerResult,
@@ -34,11 +33,9 @@ init_router!(query_users, create_user, query_users_by_page, delete_users);
 )]
 pub async fn query_users(
     session: AuthSession,
-    Extension(conn): Extension<DatabaseConnection>,
+    user_service: AppService<UserService>,
 ) -> ServerResult<ApiResponse> {
     session.assert_has_permission(OperationPermission::QueryUsers)?;
-
-    let user_service = UserService::new(conn);
 
     let users = user_service.query_users_list().await?;
     let users = users.into_iter().map(UserDto::from).collect::<Vec<_>>();
@@ -58,12 +55,10 @@ pub async fn query_users(
 )]
 pub async fn query_users_by_page(
     session: AuthSession,
-    Extension(conn): Extension<DatabaseConnection>,
+    user_service: AppService<UserService>,
     Query(query): Query<PaginatedQuery<FilterUserDto>>,
 ) -> ServerResult<ApiResponse> {
     session.assert_has_permission(OperationPermission::QueryUsers)?;
-
-    let user_service = UserService::new(conn);
 
     let (users, total) = user_service.query_users_by_page(query).await?;
     let records = users.into_iter().map(UserDto::from).collect::<Vec<_>>();
@@ -83,17 +78,17 @@ pub async fn query_users_by_page(
 )]
 pub async fn create_user(
     session: AuthSession,
-    Extension(conn): Extension<DatabaseConnection>,
+    util: Helper,
+    user_service: AppService<UserService>,
     Json(params): Json<CreateUserDto>,
 ) -> ServerResult<ApiResponse> {
     session.assert_has_permission(OperationPermission::CreateUser)?;
-
-    let user_service = UserService::new(conn);
+    let password = util.decrypt_rsa(&params.password)?;
 
     let user_id = user_service
         .create_user(CreateUserParams {
             account: params.account,
-            password: params.password,
+            password,
             ..Default::default()
         })
         .await?;
@@ -113,12 +108,10 @@ pub async fn create_user(
 )]
 pub async fn delete_users(
     session: AuthSession,
-    Extension(conn): Extension<DatabaseConnection>,
+    user_service: AppService<UserService>,
     Json(params): Json<DeleteUsersRequestDto>,
 ) -> ServerResult<ApiResponse> {
     session.assert_has_permission(OperationPermission::DeleteUser)?;
-
-    let user_service = UserService::new(conn);
 
     user_service.delete_users(params.into()).await?;
 

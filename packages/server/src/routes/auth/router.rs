@@ -10,6 +10,7 @@ use crate::{
     extractors::{
         app_service::AppService,
         auth_session::{AuthSession, SESSION_ID_KEY},
+        helper::Helper,
     },
     init_router,
     response::{ApiResponse, Null, ResponseJson},
@@ -17,7 +18,7 @@ use crate::{
     routes::{
         auth::dto::{
             LoginRequestDto, LoginResponseDto, QueryDepartmentPermissionsDto,
-            QueryGroupPermissionsDto, QueryUserPermissionsDto,
+            QueryGroupPermissionsDto, QueryUserPermissionsDto, RegisterRequestDto,
         },
         permission::dto::PermissionDto,
     },
@@ -27,6 +28,7 @@ use super::dto::{AssignUserPermissionsDto, GroupTreePermissionsDto};
 
 #[derive(OpenApi)]
 #[openapi(paths(
+    register,
     login,
     logout,
     logout_all,
@@ -37,6 +39,7 @@ use super::dto::{AssignUserPermissionsDto, GroupTreePermissionsDto};
 ))]
 pub(crate) struct ApiDoc;
 init_router!(
+    register,
     login,
     logout,
     logout_all,
@@ -46,10 +49,46 @@ init_router!(
     query_department_permissions
 );
 
+/// Register
+#[utoipa::path(
+    operation_id = "register",
+    post,
+    path = "/register",
+    request_body = RegisterRequestDto,
+    responses(
+        (status = OK, description = "ok", body = ResponseJson<LoginResponseDto>)
+    )
+)]
+pub async fn register(
+    helper: Helper,
+    auth_service: AppService<AuthService>,
+    TypedHeader(user_agent): TypedHeader<UserAgent>,
+    Json(mut params): Json<RegisterRequestDto>,
+) -> ServerResult<ApiResponse> {
+    params.agent = Some(user_agent.to_string());
+    params.password = helper.decrypt_rsa(&params.password)?;
+
+    let (auth_token_id, user) = auth_service.register(params.into()).await?;
+
+    let mut cookie = Cookie::new(SESSION_ID_KEY, auth_token_id.to_string());
+    cookie.set_path("/");
+    cookie.set_http_only(true);
+
+    let response_dto = LoginResponseDto {
+        user_id: user.id,
+        account: user.account,
+    };
+
+    let mut response = ApiResponse::default();
+    response.set_cookie(cookie);
+    response.set_body_json(response_dto);
+
+    Ok(response)
+}
+
 /// Login
 #[utoipa::path(
     operation_id = "login",
-    description = "Login",
     post,
     path = "/login",
     request_body = LoginRequestDto,
@@ -58,13 +97,14 @@ init_router!(
     )
 )]
 pub async fn login(
-    Extension(conn): Extension<DatabaseConnection>,
+    helper: Helper,
+    auth_service: AppService<AuthService>,
     TypedHeader(user_agent): TypedHeader<UserAgent>,
     Json(mut params): Json<LoginRequestDto>,
 ) -> ServerResult<ApiResponse> {
     params.agent = Some(user_agent.to_string());
+    params.password = helper.decrypt_rsa(&params.password)?;
 
-    let auth_service = AuthService::new(conn);
     let (auth_token_id, user) = auth_service.login(params.into()).await?;
 
     let mut cookie = Cookie::new(SESSION_ID_KEY, auth_token_id.to_string());

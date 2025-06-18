@@ -1,2 +1,4 @@
 database_url = "postgres://postgres:postgres@localhost/template"
 server_port = 4000
+private_key = "ssl/private.pem"
+public_key = "ssl/public.pem"

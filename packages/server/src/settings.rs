@@ -10,6 +10,8 @@ static SETTING: OnceLock<Settings> = OnceLock::new();
 pub struct Settings {
     pub database_url: String,
     pub server_port: u16,
+    pub private_key: String,
+    pub public_key: String,
     pub debug: Option<bool>,
 }
 

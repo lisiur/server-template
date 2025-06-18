@@ -4,10 +4,34 @@ use app::services::auth::{
     assign_permissions::AssignUserPermissionsParams,
     login::LoginParams,
     query_permissions::{GroupPermissionChainNode, GroupPermissionTreeGroupNode},
+    register::RegisterParams,
 };
 use serde::{Deserialize, Serialize};
 use utoipa::{IntoParams, ToSchema};
 use uuid::Uuid;
+
+#[derive(ToSchema, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RegisterRequestDto {
+    pub account: String,
+    pub password: String,
+    pub ip: Option<String>,
+    pub platform: Option<String>,
+    #[schema(ignore)]
+    pub agent: Option<String>,
+}
+
+impl From<RegisterRequestDto> for RegisterParams {
+    fn from(value: RegisterRequestDto) -> Self {
+        Self {
+            account: value.account,
+            password: value.password,
+            ip: value.ip,
+            platform: value.platform,
+            agent: value.agent,
+        }
+    }
+}
 
 #[derive(ToSchema, Deserialize)]
 #[serde(rename_all = "camelCase")]

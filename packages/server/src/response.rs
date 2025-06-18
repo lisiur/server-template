@@ -55,6 +55,13 @@ impl ApiResponse {
         response
     }
 
+    #[allow(unused)]
+    pub fn text(data: String) -> Self {
+        let mut response = Self::default();
+        response.set_body_text(data);
+        response
+    }
+
     pub fn null() -> Self {
         Self::json(Null)
     }
@@ -85,6 +92,11 @@ impl ApiResponse {
                 .unwrap()
                 .into(),
         );
+        self
+    }
+
+    pub fn set_body_text(&mut self, body: String) -> &mut Self {
+        self.body = Some(body.into());
         self
     }
 
