@@ -1,8 +1,8 @@
 use app::{
-    models::group::Group,
-    services::group::{
-        delete_groups::DeleteGroupsParams, query_groups::FilterGroupsParams,
-        update_group::UpdateGroupParams,
+    models::user_group::UserGroup,
+    services::user_group::{
+        delete_user_groups::DeleteGroupsParams, query_user_groups::FilterGroupsParams,
+        update_user_group::UpdateGroupParams,
     },
 };
 use chrono::{DateTime, Utc};
@@ -32,8 +32,8 @@ pub struct GroupDto {
     pub updated_at: DateTime<Utc>,
 }
 
-impl From<Group> for GroupDto {
-    fn from(value: Group) -> Self {
+impl From<UserGroup> for GroupDto {
+    fn from(value: UserGroup) -> Self {
         Self {
             id: value.id,
             name: value.name,

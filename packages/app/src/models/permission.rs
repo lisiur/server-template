@@ -7,7 +7,6 @@ pub struct Permission {
     pub code: String,
     pub kind: String,
     pub description: Option<String>,
-    pub parent_id: Option<Uuid>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -19,7 +18,6 @@ impl From<permissions::Model> for Permission {
             code: model.code,
             kind: model.kind,
             description: model.description,
-            parent_id: model.parent_id,
             created_at: model.created_at.into(),
             updated_at: model.updated_at.into(),
         }

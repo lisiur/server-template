@@ -25,7 +25,9 @@ pub enum AppException {
     AuthenticationFailed,
     InvalidCredentials,
     DepartmentNotFound,
-    GroupNotFound,
+    UserGroupNotFound,
+    RoleGroupNotFound,
+    PermissionGroupNotFound,
     GroupCircleDetected,
     DepartmentCircleDetected,
 }

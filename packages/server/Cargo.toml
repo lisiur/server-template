@@ -10,6 +10,7 @@ app = { path = "../app" }
 shared = { path = "../shared" }
 
 anyhow = { workspace = true }
+async-trait = { workspace = true }
 axum = { workspace = true }
 axum-extra = { workspace = true }
 chrono = { workspace = true }
@@ -25,16 +26,16 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 sqlx = { workspace = true }
 thiserror = { workspace = true }
+time = { workspace = true }
 tokio = { workspace = true }
 tower = { workspace = true }
+tower-http = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 utoipa = { workspace = true }
 utoipa-scalar = { workspace = true }
 uuid = { workspace = true }
 validator = { workspace = true }
-time = { workspace = true }
-async-trait = { workspace = true }
 strum = { workspace = true }
 
 [build-dependencies]

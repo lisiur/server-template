@@ -1,8 +1,11 @@
 use migration::{Alias, ExprTrait, IntoColumnRef, IntoCondition, IntoTableRef, SelectStatement};
-use sea_orm::{ConnectionTrait, DatabaseConnection, FromQueryResult, sea_query};
+use sea_orm::{
+    ConnectionTrait, DatabaseConnection, EntityTrait, FromQueryResult, Statement, sea_query,
+};
 use serde::Deserialize;
 use serde_json::Value;
 use utoipa::ToSchema;
+use uuid::Uuid;
 
 use crate::result::AppResult;
 
@@ -275,5 +278,159 @@ fn handle_filter_atom(filter_atom: FilterAtom) -> sea_orm::Condition {
             .into_condition(),
         FilterCondition::IsNull => field.is_null().into_condition(),
         FilterCondition::IsNotNull => field.is_not_null().into_condition(),
+    }
+}
+
+pub struct TreeQuery<T: EntityTrait>(T);
+
+impl<T: EntityTrait> TreeQuery<T> {
+    pub fn new(entity: T) -> Self {
+        Self(entity)
+    }
+
+    pub async fn query_descendants(&self, db: &DatabaseConnection) -> AppResult<Vec<T::Model>> {
+        let models = T::find()
+            .from_raw_sql(Statement::from_sql_and_values(
+                db.get_database_backend(),
+                format!(
+                    r#"
+                        WITH RECURSIVE tree AS (
+                            SELECT * FROM {table} WHERE {id} IS NULL
+                            UNION ALL
+                            SELECT g.* FROM {table} g
+                            JOIN tree t ON g.{parent_id} = t.{id}
+                        )
+                        SELECT * FROM tree
+                    "#,
+                    table = self.0.as_str(),
+                    id = "id",
+                    parent_id = "parent_id",
+                ),
+                vec![],
+            ))
+            .all(db)
+            .await?;
+
+        Ok(models)
+    }
+
+    pub async fn query_descendants_with_one(
+        &self,
+        db: &DatabaseConnection,
+        id: Uuid,
+    ) -> AppResult<Vec<T::Model>> {
+        let models = T::find()
+            .from_raw_sql(Statement::from_sql_and_values(
+                db.get_database_backend(),
+                format!(
+                    r#"
+                        WITH RECURSIVE tree AS (
+                            SELECT * FROM {table} WHERE {id} = $1
+                            UNION ALL
+                            SELECT g.* FROM {table} g
+                            JOIN tree t ON g.{parent_id} = t.{id}
+                        )
+                        SELECT * FROM tree
+                    "#,
+                    table = self.0.as_str(),
+                    id = "id",
+                    parent_id = "parent_id",
+                ),
+                vec![id.into()],
+            ))
+            .all(db)
+            .await?;
+
+        Ok(models)
+    }
+
+    pub async fn query_descendants_with_many(
+        &self,
+        db: &DatabaseConnection,
+        ids: Vec<Uuid>,
+    ) -> AppResult<Vec<T::Model>> {
+        let models = T::find()
+            .from_raw_sql(Statement::from_sql_and_values(
+                db.get_database_backend(),
+                format!(
+                    r#"
+                        WITH RECURSIVE tree AS (
+                            SELECT * FROM {table} WHERE {id} = $1
+                            UNION ALL
+                            SELECT g.* FROM {table} g
+                            JOIN tree t ON g.{parent_id} = t.{id}
+                        )
+                        SELECT * FROM tree
+                    "#,
+                    table = self.0.as_str(),
+                    id = "id",
+                    parent_id = "parent_id",
+                ),
+                vec![ids.into()],
+            ))
+            .all(db)
+            .await?;
+
+        Ok(models)
+    }
+
+    pub async fn query_ancestors_with_one(
+        &self,
+        db: &DatabaseConnection,
+        id: Uuid,
+    ) -> AppResult<Vec<T::Model>> {
+        let models = T::find()
+            .from_raw_sql(Statement::from_sql_and_values(
+                db.get_database_backend(),
+                format!(
+                    r#"
+                        WITH RECURSIVE tree AS (
+                            SELECT * FROM {table} WHERE {id} = $1
+                            UNION ALL
+                            SELECT g.* FROM {table} g
+                            JOIN tree t ON g.{id} = t.{parent_id}
+                        )
+                        SELECT * FROM tree
+                    "#,
+                    table = self.0.as_str(),
+                    id = "id",
+                    parent_id = "parent_id",
+                ),
+                vec![id.into()],
+            ))
+            .all(db)
+            .await?;
+
+        Ok(models)
+    }
+
+    pub async fn query_ancestors_with_many(
+        &self,
+        db: &DatabaseConnection,
+        ids: Vec<Uuid>,
+    ) -> AppResult<Vec<T::Model>> {
+        let models = T::find()
+            .from_raw_sql(Statement::from_sql_and_values(
+                db.get_database_backend(),
+                format!(
+                    r#"
+                        WITH RECURSIVE tree AS (
+                            SELECT * FROM {table} WHERE {id} = $1
+                            UNION ALL
+                            SELECT g.* FROM {table} g
+                            JOIN tree t ON g.{id} = t.{parent_id}
+                        )
+                        SELECT * FROM tree
+                    "#,
+                    table = self.0.as_str(),
+                    id = "id",
+                    parent_id = "parent_id",
+                ),
+                vec![ids.into()],
+            ))
+            .all(db)
+            .await?;
+
+        Ok(models)
     }
 }

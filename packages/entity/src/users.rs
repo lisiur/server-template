@@ -27,25 +27,23 @@ pub struct Model {
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
-    #[sea_orm(has_many = "super::relation_departments_users::Entity")]
-    RelationDepartmentsUsers,
-    #[sea_orm(has_many = "super::relation_groups_users::Entity")]
-    RelationGroupsUsers,
+    #[sea_orm(has_many = "super::relation_permission_groups_users::Entity")]
+    RelationPermissionGroupsUsers,
     #[sea_orm(has_many = "super::relation_permissions_users::Entity")]
     RelationPermissionsUsers,
+    #[sea_orm(has_many = "super::relation_role_groups_users::Entity")]
+    RelationRoleGroupsUsers,
     #[sea_orm(has_many = "super::relation_roles_users::Entity")]
     RelationRolesUsers,
+    #[sea_orm(has_many = "super::relation_users_departments::Entity")]
+    RelationUsersDepartments,
+    #[sea_orm(has_many = "super::relation_users_user_groups::Entity")]
+    RelationUsersUserGroups,
 }
 
-impl Related<super::relation_departments_users::Entity> for Entity {
+impl Related<super::relation_permission_groups_users::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::RelationDepartmentsUsers.def()
-    }
-}
-
-impl Related<super::relation_groups_users::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::RelationGroupsUsers.def()
+        Relation::RelationPermissionGroupsUsers.def()
     }
 }
 
@@ -55,31 +53,53 @@ impl Related<super::relation_permissions_users::Entity> for Entity {
     }
 }
 
+impl Related<super::relation_role_groups_users::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::RelationRoleGroupsUsers.def()
+    }
+}
+
 impl Related<super::relation_roles_users::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::RelationRolesUsers.def()
     }
 }
 
+impl Related<super::relation_users_departments::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::RelationUsersDepartments.def()
+    }
+}
+
+impl Related<super::relation_users_user_groups::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::RelationUsersUserGroups.def()
+    }
+}
+
 impl Related<super::departments::Entity> for Entity {
     fn to() -> RelationDef {
-        super::relation_departments_users::Relation::Departments.def()
+        super::relation_users_departments::Relation::Departments.def()
     }
     fn via() -> Option<RelationDef> {
         Some(
-            super::relation_departments_users::Relation::Users
+            super::relation_users_departments::Relation::Users
                 .def()
                 .rev(),
         )
     }
 }
 
-impl Related<super::groups::Entity> for Entity {
+impl Related<super::permission_groups::Entity> for Entity {
     fn to() -> RelationDef {
-        super::relation_groups_users::Relation::Groups.def()
+        super::relation_permission_groups_users::Relation::PermissionGroups.def()
     }
     fn via() -> Option<RelationDef> {
-        Some(super::relation_groups_users::Relation::Users.def().rev())
+        Some(
+            super::relation_permission_groups_users::Relation::Users
+                .def()
+                .rev(),
+        )
     }
 }
 
@@ -96,12 +116,38 @@ impl Related<super::permissions::Entity> for Entity {
     }
 }
 
+impl Related<super::role_groups::Entity> for Entity {
+    fn to() -> RelationDef {
+        super::relation_role_groups_users::Relation::RoleGroups.def()
+    }
+    fn via() -> Option<RelationDef> {
+        Some(
+            super::relation_role_groups_users::Relation::Users
+                .def()
+                .rev(),
+        )
+    }
+}
+
 impl Related<super::roles::Entity> for Entity {
     fn to() -> RelationDef {
         super::relation_roles_users::Relation::Roles.def()
     }
     fn via() -> Option<RelationDef> {
         Some(super::relation_roles_users::Relation::Users.def().rev())
+    }
+}
+
+impl Related<super::user_groups::Entity> for Entity {
+    fn to() -> RelationDef {
+        super::relation_users_user_groups::Relation::UserGroups.def()
+    }
+    fn via() -> Option<RelationDef> {
+        Some(
+            super::relation_users_user_groups::Relation::Users
+                .def()
+                .rev(),
+        )
     }
 }
 

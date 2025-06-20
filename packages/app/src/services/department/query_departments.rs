@@ -3,7 +3,7 @@ use serde::Serialize;
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 use utoipa::ToSchema;
 
-use entity::{departments, relation_departments_roles, relation_departments_users};
+use entity::{departments, relation_roles_departments, relation_users_departments};
 use uuid::Uuid;
 
 use crate::{
@@ -40,7 +40,7 @@ impl DepartmentService {
     pub async fn query_department_tree(&self, department_id: Uuid) -> AppResult<DepartmentTree> {
         let departments = self.query_department_tree_models(department_id).await?;
         if departments.is_empty() {
-            return Err(AppException::GroupNotFound.into());
+            return Err(AppException::UserGroupNotFound.into());
         }
 
         let mut department_nodes: HashMap<Uuid, Rc<RefCell<DepartmentTreeNode>>> = HashMap::new();
@@ -65,7 +65,7 @@ impl DepartmentService {
     pub async fn query_department_chain(&self, department_id: Uuid) -> AppResult<Vec<Department>> {
         let departments = self.query_department_chain_models(department_id).await?;
         if departments.is_empty() {
-            return Err(AppException::GroupNotFound.into());
+            return Err(AppException::UserGroupNotFound.into());
         }
 
         Ok(departments.into_iter().map(Department::from).collect())
@@ -130,8 +130,8 @@ impl DepartmentService {
 
     pub async fn query_departments_by_user_id(&self, user_id: Uuid) -> AppResult<Vec<Department>> {
         let groups = departments::Entity::find()
-            .inner_join(relation_departments_users::Entity)
-            .filter(relation_departments_users::Column::UserId.eq(user_id))
+            .inner_join(relation_users_departments::Entity)
+            .filter(relation_users_departments::Column::UserId.eq(user_id))
             .all(&self.0)
             .await?;
 
@@ -140,8 +140,8 @@ impl DepartmentService {
 
     pub async fn query_departments_by_role_id(&self, role_id: Uuid) -> AppResult<Vec<Department>> {
         let departments = departments::Entity::find()
-            .inner_join(relation_departments_roles::Entity)
-            .filter(relation_departments_roles::Column::RoleId.eq(role_id))
+            .inner_join(relation_roles_departments::Entity)
+            .filter(relation_roles_departments::Column::RoleId.eq(role_id))
             .all(&self.0)
             .await?;
 

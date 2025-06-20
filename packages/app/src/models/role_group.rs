@@ -1,0 +1,26 @@
+use chrono::{DateTime, Utc};
+use entity::role_groups;
+use uuid::Uuid;
+
+#[derive(Clone)]
+pub struct RoleGroup {
+    pub id: Uuid,
+    pub name: String,
+    pub description: Option<String>,
+    pub parent_id: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+impl From<role_groups::Model> for RoleGroup {
+    fn from(value: role_groups::Model) -> Self {
+        Self {
+            id: value.id,
+            name: value.name,
+            description: value.description,
+            parent_id: value.parent_id,
+            created_at: value.created_at.into(),
+            updated_at: value.updated_at.into(),
+        }
+    }
+}

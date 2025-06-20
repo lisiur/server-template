@@ -25,39 +25,81 @@ pub enum Relation {
         on_delete = "NoAction"
     )]
     SelfRef,
-    #[sea_orm(has_many = "super::relation_departments_permissions::Entity")]
-    RelationDepartmentsPermissions,
-    #[sea_orm(has_many = "super::relation_departments_roles::Entity")]
-    RelationDepartmentsRoles,
-    #[sea_orm(has_many = "super::relation_departments_users::Entity")]
-    RelationDepartmentsUsers,
+    #[sea_orm(has_many = "super::relation_permission_groups_departments::Entity")]
+    RelationPermissionGroupsDepartments,
+    #[sea_orm(has_many = "super::relation_permissions_departments::Entity")]
+    RelationPermissionsDepartments,
+    #[sea_orm(has_many = "super::relation_role_groups_departments::Entity")]
+    RelationRoleGroupsDepartments,
+    #[sea_orm(has_many = "super::relation_roles_departments::Entity")]
+    RelationRolesDepartments,
+    #[sea_orm(has_many = "super::relation_users_departments::Entity")]
+    RelationUsersDepartments,
 }
 
-impl Related<super::relation_departments_permissions::Entity> for Entity {
+impl Related<super::relation_permission_groups_departments::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::RelationDepartmentsPermissions.def()
+        Relation::RelationPermissionGroupsDepartments.def()
     }
 }
 
-impl Related<super::relation_departments_roles::Entity> for Entity {
+impl Related<super::relation_permissions_departments::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::RelationDepartmentsRoles.def()
+        Relation::RelationPermissionsDepartments.def()
     }
 }
 
-impl Related<super::relation_departments_users::Entity> for Entity {
+impl Related<super::relation_role_groups_departments::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::RelationDepartmentsUsers.def()
+        Relation::RelationRoleGroupsDepartments.def()
+    }
+}
+
+impl Related<super::relation_roles_departments::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::RelationRolesDepartments.def()
+    }
+}
+
+impl Related<super::relation_users_departments::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::RelationUsersDepartments.def()
+    }
+}
+
+impl Related<super::permission_groups::Entity> for Entity {
+    fn to() -> RelationDef {
+        super::relation_permission_groups_departments::Relation::PermissionGroups.def()
+    }
+    fn via() -> Option<RelationDef> {
+        Some(
+            super::relation_permission_groups_departments::Relation::Departments
+                .def()
+                .rev(),
+        )
     }
 }
 
 impl Related<super::permissions::Entity> for Entity {
     fn to() -> RelationDef {
-        super::relation_departments_permissions::Relation::Permissions.def()
+        super::relation_permissions_departments::Relation::Permissions.def()
     }
     fn via() -> Option<RelationDef> {
         Some(
-            super::relation_departments_permissions::Relation::Departments
+            super::relation_permissions_departments::Relation::Departments
+                .def()
+                .rev(),
+        )
+    }
+}
+
+impl Related<super::role_groups::Entity> for Entity {
+    fn to() -> RelationDef {
+        super::relation_role_groups_departments::Relation::RoleGroups.def()
+    }
+    fn via() -> Option<RelationDef> {
+        Some(
+            super::relation_role_groups_departments::Relation::Departments
                 .def()
                 .rev(),
         )
@@ -66,11 +108,11 @@ impl Related<super::permissions::Entity> for Entity {
 
 impl Related<super::roles::Entity> for Entity {
     fn to() -> RelationDef {
-        super::relation_departments_roles::Relation::Roles.def()
+        super::relation_roles_departments::Relation::Roles.def()
     }
     fn via() -> Option<RelationDef> {
         Some(
-            super::relation_departments_roles::Relation::Departments
+            super::relation_roles_departments::Relation::Departments
                 .def()
                 .rev(),
         )
@@ -79,11 +121,11 @@ impl Related<super::roles::Entity> for Entity {
 
 impl Related<super::users::Entity> for Entity {
     fn to() -> RelationDef {
-        super::relation_departments_users::Relation::Users.def()
+        super::relation_users_departments::Relation::Users.def()
     }
     fn via() -> Option<RelationDef> {
         Some(
-            super::relation_departments_users::Relation::Departments
+            super::relation_users_departments::Relation::Departments
                 .def()
                 .rev(),
         )

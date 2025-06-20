@@ -12,7 +12,6 @@ pub struct Model {
     #[sea_orm(unique)]
     pub code: String,
     pub description: Option<String>,
-    pub parent_id: Option<Uuid>,
     pub is_deleted: bool,
     pub created_at: DateTimeWithTimeZone,
     pub updated_at: DateTimeWithTimeZone,
@@ -20,39 +19,39 @@ pub struct Model {
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
-    #[sea_orm(
-        belongs_to = "Entity",
-        from = "Column::ParentId",
-        to = "Column::Id",
-        on_update = "NoAction",
-        on_delete = "NoAction"
-    )]
-    SelfRef,
-    #[sea_orm(has_many = "super::relation_departments_permissions::Entity")]
-    RelationDepartmentsPermissions,
-    #[sea_orm(has_many = "super::relation_groups_permissions::Entity")]
-    RelationGroupsPermissions,
+    #[sea_orm(has_many = "super::relation_permissions_departments::Entity")]
+    RelationPermissionsDepartments,
+    #[sea_orm(has_many = "super::relation_permissions_permission_groups::Entity")]
+    RelationPermissionsPermissionGroups,
     #[sea_orm(has_many = "super::relation_permissions_roles::Entity")]
     RelationPermissionsRoles,
+    #[sea_orm(has_many = "super::relation_permissions_user_groups::Entity")]
+    RelationPermissionsUserGroups,
     #[sea_orm(has_many = "super::relation_permissions_users::Entity")]
     RelationPermissionsUsers,
 }
 
-impl Related<super::relation_departments_permissions::Entity> for Entity {
+impl Related<super::relation_permissions_departments::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::RelationDepartmentsPermissions.def()
+        Relation::RelationPermissionsDepartments.def()
     }
 }
 
-impl Related<super::relation_groups_permissions::Entity> for Entity {
+impl Related<super::relation_permissions_permission_groups::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::RelationGroupsPermissions.def()
+        Relation::RelationPermissionsPermissionGroups.def()
     }
 }
 
 impl Related<super::relation_permissions_roles::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::RelationPermissionsRoles.def()
+    }
+}
+
+impl Related<super::relation_permissions_user_groups::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::RelationPermissionsUserGroups.def()
     }
 }
 
@@ -64,24 +63,24 @@ impl Related<super::relation_permissions_users::Entity> for Entity {
 
 impl Related<super::departments::Entity> for Entity {
     fn to() -> RelationDef {
-        super::relation_departments_permissions::Relation::Departments.def()
+        super::relation_permissions_departments::Relation::Departments.def()
     }
     fn via() -> Option<RelationDef> {
         Some(
-            super::relation_departments_permissions::Relation::Permissions
+            super::relation_permissions_departments::Relation::Permissions
                 .def()
                 .rev(),
         )
     }
 }
 
-impl Related<super::groups::Entity> for Entity {
+impl Related<super::permission_groups::Entity> for Entity {
     fn to() -> RelationDef {
-        super::relation_groups_permissions::Relation::Groups.def()
+        super::relation_permissions_permission_groups::Relation::PermissionGroups.def()
     }
     fn via() -> Option<RelationDef> {
         Some(
-            super::relation_groups_permissions::Relation::Permissions
+            super::relation_permissions_permission_groups::Relation::Permissions
                 .def()
                 .rev(),
         )
@@ -95,6 +94,19 @@ impl Related<super::roles::Entity> for Entity {
     fn via() -> Option<RelationDef> {
         Some(
             super::relation_permissions_roles::Relation::Permissions
+                .def()
+                .rev(),
+        )
+    }
+}
+
+impl Related<super::user_groups::Entity> for Entity {
+    fn to() -> RelationDef {
+        super::relation_permissions_user_groups::Relation::UserGroups.def()
+    }
+    fn via() -> Option<RelationDef> {
+        Some(
+            super::relation_permissions_user_groups::Relation::Permissions
                 .def()
                 .rev(),
         )

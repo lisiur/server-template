@@ -1,4 +1,8 @@
-use entity::{permissions, relation_permissions_roles, relation_roles_users, roles, users};
+use entity::{
+    permission_groups, permissions, relation_permission_groups_roles,
+    relation_permissions_permission_groups, relation_permissions_roles, relation_role_groups_users,
+    relation_roles_users, roles, users,
+};
 use sea_orm::prelude::*;
 use sea_orm_migration::{prelude::*, sea_orm::ActiveValue::Set};
 use shared::{
@@ -15,38 +19,12 @@ impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         let db = manager.get_connection();
 
-        // Create role group "*"
-        let root_role_group_id = roles::ActiveModel {
-            id: Set(Uuid::nil()),
-            name: Set("*".to_string()),
-            description: Set(Some("All".to_string())),
-            built_in: Set(true),
-            ..Default::default()
-        }
-        .insert(db)
-        .await?
-        .id;
-
         // Create role "admin"
         let admin_role_id = roles::ActiveModel {
-            id: Set(Uuid::new_v4()),
+            id: Set(Uuid::nil()),
             name: Set("admin".to_string()),
             description: Set(Some("admin".to_string())),
             built_in: Set(true),
-            parent_id: Set(Some(root_role_group_id)),
-            ..Default::default()
-        }
-        .insert(db)
-        .await?
-        .id;
-
-        // Create role "user"
-        let user_role_id = roles::ActiveModel {
-            id: Set(Uuid::new_v4()),
-            name: Set("user".to_string()),
-            description: Set(Some("user".to_string())),
-            built_in: Set(true),
-            parent_id: Set(Some(root_role_group_id)),
             ..Default::default()
         }
         .insert(db)
@@ -65,18 +43,6 @@ impl MigrationTrait for Migration {
         .await?
         .id;
 
-        // Create user "test"
-        let test_user_id = users::ActiveModel {
-            id: Set(Uuid::new_v4()),
-            account: Set("test".to_string()),
-            password_digest: Set(Some(hash_password("Test@132"))),
-            gender: Set(Gender::Unknown.to_string()),
-            ..Default::default()
-        }
-        .insert(db)
-        .await?
-        .id;
-
         // Assign user "admin" to role "admin"
         relation_roles_users::ActiveModel {
             role_id: Set(admin_role_id),
@@ -86,65 +52,24 @@ impl MigrationTrait for Migration {
         .insert(db)
         .await?;
 
-        // Assign user "test" to role "user"
-        relation_roles_users::ActiveModel {
-            role_id: Set(user_role_id),
-            user_id: Set(test_user_id),
+        // Create permission groups "system"
+        let initial_permission_groups = [permission_groups::ActiveModel {
+            id: Set(Uuid::nil()),
+            name: Set("system".to_string()),
             ..Default::default()
-        }
-        .insert(db)
-        .await?;
-
-        // Create permission groups "*" "basic" "system"
-        let initial_permission_groups = [
-            permissions::ActiveModel {
-                id: Set(Uuid::nil()),
-                code: Set("*".to_string()),
-                kind: Set(PermissionKind::Operation.to_string()),
-                built_in: Set(true),
-                ..Default::default()
-            },
-            permissions::ActiveModel {
-                id: Set(Uuid::new_v4()),
-                code: Set("basic".to_string()),
-                kind: Set(PermissionKind::Operation.to_string()),
-                built_in: Set(true),
-                ..Default::default()
-            },
-            permissions::ActiveModel {
-                id: Set(Uuid::new_v4()),
-                code: Set("system".to_string()),
-                kind: Set(PermissionKind::Operation.to_string()),
-                built_in: Set(true),
-                ..Default::default()
-            },
-        ];
-        let permissions_id_list = permissions::Entity::insert_many(initial_permission_groups)
+        }];
+        let permissions_id_list = permission_groups::Entity::insert_many(initial_permission_groups)
             .exec_with_returning_keys(db)
             .await?;
-        let basic_permission_group_id = permissions_id_list[1];
-        let system_permission_group_id = permissions_id_list[2];
+        let system_permission_group_id = permissions_id_list[0];
 
-        // Assign permission group "basic" to role "user" & "admin"
         // Assign permission group "system" to role "admin"
-        let relations = [
-            relation_permissions_roles::ActiveModel {
-                permission_id: Set(basic_permission_group_id),
-                role_id: Set(user_role_id),
-                ..Default::default()
-            },
-            relation_permissions_roles::ActiveModel {
-                permission_id: Set(basic_permission_group_id),
-                role_id: Set(admin_role_id),
-                ..Default::default()
-            },
-            relation_permissions_roles::ActiveModel {
-                permission_id: Set(system_permission_group_id),
-                role_id: Set(admin_role_id),
-                ..Default::default()
-            },
-        ];
-        relation_permissions_roles::Entity::insert_many(relations)
+        let relations = [relation_permission_groups_roles::ActiveModel {
+            permission_group_id: Set(system_permission_group_id),
+            role_id: Set(admin_role_id),
+            ..Default::default()
+        }];
+        relation_permission_groups_roles::Entity::insert_many(relations)
             .exec(db)
             .await?;
 
@@ -173,18 +98,30 @@ impl MigrationTrait for Migration {
             (OP::QueryDepartmentPermissions, sys),
         ];
 
-        permissions::Entity::insert_many(preset_permissions.iter().map(|x| {
-            permissions::ActiveModel {
-                id: Set(Uuid::new_v4()),
-                parent_id: Set(Some(x.1)),
-                code: Set(x.0.to_string()),
-                kind: Set(PermissionKind::Operation.to_string()),
-                description: Set(Some("All".to_string())),
-                built_in: Set(true),
-                ..Default::default()
-            }
-        }))
-        .exec_with_returning_keys(db)
+        let permissions_id_list =
+            permissions::Entity::insert_many(preset_permissions.iter().map(|x| {
+                permissions::ActiveModel {
+                    id: Set(Uuid::new_v4()),
+                    code: Set(x.0.to_string()),
+                    kind: Set(PermissionKind::Operation.to_string()),
+                    description: Set(None),
+                    built_in: Set(true),
+                    ..Default::default()
+                }
+            }))
+            .exec_with_returning_keys(db)
+            .await?;
+
+        relation_permissions_permission_groups::Entity::insert_many(
+            permissions_id_list.into_iter().map(|x| {
+                relation_permissions_permission_groups::ActiveModel {
+                    permission_id: Set(x),
+                    permission_group_id: Set(system_permission_group_id),
+                    ..Default::default()
+                }
+            }),
+        )
+        .exec(db)
         .await?;
 
         Ok(())
@@ -195,6 +132,12 @@ impl MigrationTrait for Migration {
 
         relation_roles_users::Entity::delete_many().exec(db).await?;
         relation_permissions_roles::Entity::delete_many()
+            .exec(db)
+            .await?;
+        relation_permissions_permission_groups::Entity::delete_many()
+            .exec(db)
+            .await?;
+        relation_role_groups_users::Entity::delete_many()
             .exec(db)
             .await?;
         permissions::Entity::delete_many().exec(db).await?;

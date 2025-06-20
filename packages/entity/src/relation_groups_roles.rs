@@ -34,7 +34,7 @@ pub enum Relation {
     Roles,
 }
 
-impl Related<super::groups::Entity> for Entity {
+impl Related<super::user_groups::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::Groups.def()
     }

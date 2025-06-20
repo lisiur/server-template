@@ -235,7 +235,7 @@ pub async fn query_user_permissions(
     path = "/queryGroupPermissions",
     params(QueryGroupPermissionsDto),
     responses(
-        (status = OK, description = "ok", body = ResponseJson<GroupTreePermissionsDto>)
+        (status = OK, description = "ok", body = ResponseJson<GroupPermissionChainNode>)
     )
 )]
 pub async fn query_group_permissions(
@@ -245,7 +245,9 @@ pub async fn query_group_permissions(
 ) -> ServerResult<ApiResponse> {
     session.assert_has_permission(OperationPermission::QueryGroupPermissions)?;
 
-    let res = auth_service.query_group_permissions(query.group_id).await?;
+    let res = auth_service
+        .query_group_chain_permissions(query.group_id)
+        .await?;
 
     Ok(ApiResponse::json(
         res.into_iter()

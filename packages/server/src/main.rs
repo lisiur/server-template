@@ -5,6 +5,7 @@ use result::ServerResult;
 use rsa::{RsaPrivateKey, RsaPublicKey, pkcs1::DecodeRsaPrivateKey, pkcs8::DecodePublicKey};
 use sea_orm::{Database, DatabaseConnection};
 use settings::Settings;
+use tower_http::trace::TraceLayer;
 use tracing_subscriber::EnvFilter;
 use utoipa::OpenApi;
 use utoipa_scalar::{Scalar, Servable};
@@ -110,7 +111,8 @@ async fn main() -> ServerResult<()> {
         .nest("/users", routes::user::router::init())
         .layer(Extension(db_conn))
         .layer(Extension(priv_key))
-        .layer(Extension(pub_key));
+        .layer(Extension(pub_key))
+        .layer(TraceLayer::new_for_http());
 
     let server_port = setting.server_port;
     let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", server_port))

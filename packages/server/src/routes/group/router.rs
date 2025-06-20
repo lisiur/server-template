@@ -1,5 +1,5 @@
 use app::{
-    services::group::{GroupService, create_group::CreateGroupParams},
+    services::user_group::{UserGroupService, create_user_group::CreateGroupParams},
     utils::query::PaginatedQuery,
 };
 use axum::{Extension, Json, extract::Query};
@@ -46,7 +46,7 @@ pub async fn query_groups_by_page(
 ) -> ServerResult<ApiResponse> {
     session.assert_has_permission(OperationPermission::QueryGroups)?;
 
-    let group_service = GroupService::new(conn);
+    let group_service = UserGroupService::new(conn);
 
     let (groups, total) = group_service.query_groups_by_page(query).await?;
     let records = groups.into_iter().map(GroupDto::from).collect::<Vec<_>>();
@@ -72,7 +72,7 @@ pub async fn create_group(
 ) -> ServerResult<ApiResponse> {
     session.assert_has_permission(OperationPermission::CreateGroup)?;
 
-    let group_service = GroupService::new(conn);
+    let group_service = UserGroupService::new(conn);
 
     let group_id = group_service
         .create_group(CreateGroupParams {
@@ -104,7 +104,7 @@ pub async fn delete_groups(
 ) -> ServerResult<ApiResponse> {
     session.assert_has_permission(OperationPermission::DeleteGroup)?;
 
-    let group_service = GroupService::new(conn);
+    let group_service = UserGroupService::new(conn);
     group_service.delete_groups(params.into()).await?;
     Ok(ApiResponse::null())
 }
@@ -127,7 +127,7 @@ pub async fn update_group(
 ) -> ServerResult<ApiResponse> {
     session.assert_has_permission(OperationPermission::UpdateGroup)?;
 
-    let group_service = GroupService::new(conn);
+    let group_service = UserGroupService::new(conn);
     group_service.update_group(params.into()).await?;
     Ok(ApiResponse::null())
 }

@@ -9,9 +9,9 @@ use crate::{
         auth::AuthService,
         auth_token::{AuthTokenService, create_auth_token::CreateSessionTokenParams},
         department::DepartmentService,
-        group::GroupService,
         role::RoleService,
         user::UserService,
+        user_group::UserGroupService,
     },
 };
 
@@ -28,7 +28,7 @@ impl AuthService {
         let user_service = UserService::new(self.0.clone());
         let auth_service = AuthService::new(self.0.clone());
         let role_service = RoleService::new(self.0.clone());
-        let group_service = GroupService::new(self.0.clone());
+        let group_service = UserGroupService::new(self.0.clone());
         let department_service = DepartmentService::new(self.0.clone());
         let auth_token_service = AuthTokenService::new(self.0.clone());
 
@@ -40,9 +40,9 @@ impl AuthService {
             return Err(AppException::AuthenticationFailed.into());
         }
 
-        let permissions = auth_service.query_user_permissions(user.id).await?;
+        let user_permissions = auth_service.query_user_permissions(user.id).await?;
         let roles = role_service.query_roles_by_user_id(user.id).await?;
-        let groups = group_service.query_groups_by_user_id(user.id).await?;
+        let groups = group_service.query_user_groups_by_user_id(user.id).await?;
         let departments = department_service
             .query_departments_by_user_id(user.id)
             .await?;
@@ -54,7 +54,11 @@ impl AuthService {
                 agent: params.agent,
                 expired_at: None,
                 user_id: user.id,
-                permissions: permissions.into_iter().map(|x| x.code).collect(),
+                permissions: user_permissions
+                    .flatten_permissions()
+                    .into_iter()
+                    .map(|x| x.code)
+                    .collect(),
                 roles: roles.into_iter().map(|x| x.id).collect(),
                 groups: groups.into_iter().map(|x| x.id).collect(),
                 departments: departments.into_iter().map(|x| x.id).collect(),

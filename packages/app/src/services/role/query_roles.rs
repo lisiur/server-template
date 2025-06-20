@@ -4,8 +4,8 @@ use crate::{
     models::role::Role,
     utils::query::{FilterAtom, FilterCondition, PageableQuery},
 };
-use entity::{relation_departments_roles, relation_groups_roles, relation_roles_users, roles};
-use sea_orm::prelude::*;
+use entity::{relation_roles_departments, relation_roles_role_groups, relation_roles_user_groups, relation_roles_users, roles};
+use sea_orm::{Condition, prelude::*};
 use uuid::Uuid;
 
 use crate::{result::AppResult, services::role::RoleService, utils::query::SelectQuery};
@@ -52,90 +52,87 @@ impl RoleService {
             .all(&self.0)
             .await?;
 
-        let flatten_roles = self.flat_roles(roles).await?;
-
-        Ok(flatten_roles.into_iter().map(Role::from).collect())
+        Ok(roles.into_iter().map(Role::from).collect())
     }
 
-    /// Query group's roles (flatten)
-    pub async fn query_roles_by_group_id(&self, group_id: Uuid) -> AppResult<Vec<Role>> {
+    /// Query user_group's roles
+    pub async fn query_roles_by_user_group_id(&self, user_group_id: Uuid) -> AppResult<Vec<Role>> {
         let roles = roles::Entity::find()
-            .inner_join(relation_groups_roles::Entity)
-            .filter(relation_groups_roles::Column::GroupId.eq(group_id))
+            .inner_join(relation_roles_user_groups::Entity)
+            .filter(relation_roles_user_groups::Column::UserGroupId.eq(user_group_id))
             .all(&self.0)
             .await?;
 
-        let flatten_roles = self.flat_roles(roles).await?;
-
-        Ok(flatten_roles.into_iter().map(Role::from).collect())
+        Ok(roles.into_iter().map(Role::from).collect())
     }
 
-    /// Query groups's roles (flatten)
-    pub async fn query_roles_by_groups_id_list(
+    /// Query user_groups's roles
+    pub async fn query_roles_by_user_groups_id_list(
         &self,
-        group_id_list: Vec<Uuid>,
-    ) -> AppResult<Vec<Role>> {
-        let roles = roles::Entity::find()
-            .inner_join(relation_groups_roles::Entity)
-            .filter(relation_groups_roles::Column::GroupId.is_in(group_id_list))
+        user_group_id_list: Vec<Uuid>,
+    ) -> AppResult<HashMap<Uuid, Vec<Role>>> {
+        let results = roles::Entity::find()
+            .inner_join(relation_roles_user_groups::Entity)
+            .find_also_related(relation_roles_user_groups::Entity)
+            .filter(relation_roles_user_groups::Column::UserGroupId.is_in(user_group_id_list))
             .all(&self.0)
             .await?;
-
-        let flatten_roles = self.flat_roles(roles).await?;
-
-        Ok(flatten_roles.into_iter().map(Role::from).collect())
+        let mut map = HashMap::new();
+        for (role, relation) in results {
+            let user_group_id = relation.unwrap().user_group_id;
+            map.entry(user_group_id).or_insert_with(Vec::new).push(Role::from(role));
+        }
+        Ok(map)
     }
 
-    /// Query department's roles (flatten)
+    /// Query role_groups's roles
+    pub async fn query_roles_by_role_groups_id_list(
+        &self,
+        role_group_id_list: Vec<Uuid>,
+    ) -> AppResult<HashMap<Uuid, Vec<Role>>> {
+        let results = roles::Entity::find()
+            .inner_join(relation_roles_role_groups::Entity)
+            .find_also_related(relation_roles_role_groups::Entity)
+            .filter(relation_roles_role_groups::Column::RoleGroupId.is_in(role_group_id_list))
+            .all(&self.0)
+            .await?;
+        let mut map = HashMap::new();
+        for (role, relation) in results {
+            let role_group_id = relation.unwrap().role_group_id;
+            map.entry(role_group_id).or_insert_with(Vec::new).push(Role::from(role));
+        }
+        Ok(map)
+    }
+
+    /// Query department's roles
     pub async fn query_roles_by_department_id(&self, department_id: Uuid) -> AppResult<Vec<Role>> {
         let roles = roles::Entity::find()
-            .inner_join(relation_departments_roles::Entity)
-            .filter(relation_departments_roles::Column::DepartmentId.eq(department_id))
+            .inner_join(relation_roles_departments::Entity)
+            .filter(relation_roles_departments::Column::DepartmentId.eq(department_id))
             .all(&self.0)
             .await?;
 
-        let flatten_roles = self.flat_roles(roles).await?;
-
-        Ok(flatten_roles.into_iter().map(Role::from).collect())
+        Ok(roles.into_iter().map(Role::from).collect())
     }
 
-    /// Query departments's roles (flatten)
-    pub async fn query_roles_by_departments_id_list(
+    /// Query departments's roles
+    pub async fn query_roles_by_department_id_list(
         &self,
         department_id_list: Vec<Uuid>,
-    ) -> AppResult<Vec<Role>> {
-        let roles = roles::Entity::find()
-            .inner_join(relation_departments_roles::Entity)
-            .filter(relation_departments_roles::Column::DepartmentId.is_in(department_id_list))
+    ) -> AppResult<HashMap<Uuid, Vec<Role>>> {
+        let results = roles::Entity::find()
+            .inner_join(relation_roles_departments::Entity)
+            .find_also_related(relation_roles_departments::Entity)
+            .filter(relation_roles_departments::Column::DepartmentId.is_in(department_id_list))
             .all(&self.0)
             .await?;
 
-        let flatten_roles = self.flat_roles(roles).await?;
-
-        Ok(flatten_roles.into_iter().map(Role::from).collect())
-    }
-
-    /// Flat roles
-    async fn flat_roles(&self, roles: Vec<roles::Model>) -> AppResult<Vec<roles::Model>> {
-        let (roles, role_groups): (Vec<roles::Model>, Vec<roles::Model>) =
-            roles.into_iter().partition(|x| x.parent_id.is_some());
-
-        let role_groups_id_list = role_groups.into_iter().map(|x| x.id).collect::<Vec<_>>();
-        let sub_roles = if role_groups_id_list.is_empty() {
-            vec![]
-        } else {
-            roles::Entity::find()
-                .filter(roles::Column::ParentId.is_in(role_groups_id_list))
-                .all(&self.0)
-                .await?
-        };
-
-        let mut role_map = HashMap::<Uuid, roles::Model>::new();
-        for role in [roles, sub_roles].concat() {
-            role_map.insert(role.id, role);
+        let mut map = HashMap::new();
+        for (role, relation) in results {
+            let department_id = relation.unwrap().department_id;
+            map.entry(department_id).or_insert_with(Vec::new).push(Role::from(role));
         }
-
-        Ok(role_map.into_values().collect())
+        Ok(map)
     }
 }
 
