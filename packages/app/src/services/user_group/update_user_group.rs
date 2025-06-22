@@ -23,7 +23,7 @@ impl UserGroupService {
         } = params;
 
         if let Some(parent_id) = parent_id {
-            let group_chains = self.query_user_group_ancestors_models(parent_id).await?;
+            let group_chains = self.query_user_group_ancestors(parent_id).await?;
             if group_chains.iter().find(|x| x.id == id).is_some() {
                 // new parent is a child of current group
                 return Err(AppException::GroupCircleDetected.into());

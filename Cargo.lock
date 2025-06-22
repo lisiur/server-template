@@ -136,6 +136,7 @@ dependencies = [
  "shared",
  "strum 0.27.1",
  "thiserror",
+ "tokio",
  "utoipa",
  "uuid",
 ]

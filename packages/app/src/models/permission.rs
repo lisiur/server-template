@@ -1,7 +1,10 @@
 use chrono::{DateTime, Utc};
 use entity::permissions;
+use serde::Serialize;
+use utoipa::ToSchema;
 use uuid::Uuid;
 
+#[derive(ToSchema, Serialize)]
 pub struct Permission {
     pub id: Uuid,
     pub code: String,

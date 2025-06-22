@@ -1,7 +1,10 @@
 use sea_orm::prelude::*;
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
-use entity::{permission_groups, relation_permission_groups_users};
+use entity::{
+    permission_groups, relation_permission_groups_departments, relation_permission_groups_roles,
+    relation_permission_groups_user_groups, relation_permission_groups_users,
+};
 use uuid::Uuid;
 
 use crate::{
@@ -42,8 +45,8 @@ impl PermissionGroupService {
         &self,
         permission_group_id: Uuid,
     ) -> AppResult<PermissionGroupTree> {
-        let permission_groups = self
-            .query_permission_group_tree_models(permission_group_id)
+        let permission_groups = TreeQuery::new(permission_groups::Entity)
+            .query_descendants_with_one(&self.0, permission_group_id)
             .await?
             .into_iter()
             .map(|x| {
@@ -90,16 +93,6 @@ impl PermissionGroupService {
         Ok(tree)
     }
 
-    pub async fn query_permission_group_tree_models(
-        &self,
-        permission_group_id: Uuid,
-    ) -> AppResult<Vec<permission_groups::Model>> {
-        let permission_groups = TreeQuery::new(permission_groups::Entity)
-            .query_descendants_with_one(&self.0, permission_group_id)
-            .await?;
-        Ok(permission_groups)
-    }
-
     pub async fn query_permission_groups_by_user_id(
         &self,
         user_id: Uuid,
@@ -111,6 +104,128 @@ impl PermissionGroupService {
             .await?;
 
         Ok(groups.into_iter().map(PermissionGroup::from).collect())
+    }
+
+    pub async fn query_permission_groups_by_department_id(
+        &self,
+        department_id: Uuid,
+    ) -> AppResult<Vec<PermissionGroup>> {
+        let groups = permission_groups::Entity::find()
+            .inner_join(relation_permission_groups_departments::Entity)
+            .filter(relation_permission_groups_departments::Column::DepartmentId.eq(department_id))
+            .all(&self.0)
+            .await?;
+
+        Ok(groups.into_iter().map(PermissionGroup::from).collect())
+    }
+
+    pub async fn query_permission_groups_by_department_id_list(
+        &self,
+        department_id_list: Vec<Uuid>,
+    ) -> AppResult<HashMap<Uuid, Vec<PermissionGroup>>> {
+        let results = permission_groups::Entity::find()
+            .find_also_related(relation_permission_groups_departments::Entity)
+            .filter(
+                relation_permission_groups_departments::Column::DepartmentId
+                    .is_in(department_id_list),
+            )
+            .all(&self.0)
+            .await?;
+
+        let mut map = HashMap::new();
+        for (permission_group, relation) in results {
+            let department_id = relation.unwrap().department_id;
+            map.entry(department_id)
+                .or_insert_with(Vec::new)
+                .push(PermissionGroup::from(permission_group));
+        }
+
+        Ok(map)
+    }
+
+    pub async fn query_permission_groups_by_user_group_id(
+        &self,
+        user_group_id: Uuid,
+    ) -> AppResult<Vec<PermissionGroup>> {
+        let groups = permission_groups::Entity::find()
+            .inner_join(relation_permission_groups_user_groups::Entity)
+            .filter(relation_permission_groups_user_groups::Column::UserGroupId.eq(user_group_id))
+            .all(&self.0)
+            .await?;
+
+        Ok(groups.into_iter().map(PermissionGroup::from).collect())
+    }
+
+    pub async fn query_permission_groups_by_user_group_id_list(
+        &self,
+        user_group_id_list: Vec<Uuid>,
+    ) -> AppResult<HashMap<Uuid, Vec<PermissionGroup>>> {
+        let results = permission_groups::Entity::find()
+            .find_also_related(relation_permission_groups_user_groups::Entity)
+            .filter(
+                relation_permission_groups_user_groups::Column::UserGroupId
+                    .is_in(user_group_id_list),
+            )
+            .all(&self.0)
+            .await?;
+
+        let mut map = HashMap::new();
+        for (permission_group, relation) in results {
+            let user_group_id = relation.unwrap().user_group_id;
+            map.entry(user_group_id)
+                .or_insert_with(Vec::new)
+                .push(PermissionGroup::from(permission_group));
+        }
+
+        Ok(map)
+    }
+
+    pub async fn query_permission_groups_by_role_id(
+        &self,
+        role: Uuid,
+    ) -> AppResult<Vec<PermissionGroup>> {
+        let groups = permission_groups::Entity::find()
+            .inner_join(relation_permission_groups_roles::Entity)
+            .filter(relation_permission_groups_roles::Column::RoleId.eq(role))
+            .all(&self.0)
+            .await?;
+
+        Ok(groups.into_iter().map(PermissionGroup::from).collect())
+    }
+
+    pub async fn query_permission_groups_by_role_id_list(
+        &self,
+        role_id_list: Vec<Uuid>,
+    ) -> AppResult<HashMap<Uuid, Vec<PermissionGroup>>> {
+        let results = permission_groups::Entity::find()
+            .find_also_related(relation_permission_groups_roles::Entity)
+            .filter(
+                relation_permission_groups_roles::Column::RoleId
+                    .is_in(role_id_list),
+            )
+            .all(&self.0)
+            .await?;
+
+        let mut map = HashMap::new();
+        for (permission_group, relation) in results {
+            let role_id = relation.unwrap().role_id;
+            map.entry(role_id)
+                .or_insert_with(Vec::new)
+                .push(PermissionGroup::from(permission_group));
+        }
+
+        Ok(map)
+    }
+
+    pub async fn query_permission_groups_by_ancestors(
+        &self,
+        permission_group_id_list: Vec<Uuid>,
+    ) -> AppResult<Vec<PermissionGroup>> {
+        let permission_groups = TreeQuery::new(permission_groups::Entity)
+            .query_descendants_with_many(&self.0, permission_group_id_list)
+            .await?;
+
+        Ok(permission_groups.into_iter().map(PermissionGroup::from).collect())
     }
 }
 

@@ -1,4 +1,4 @@
-use app::services::auth::AuthService;
+use app::services::auth::{AuthService, query_permissions::UserPermissions};
 use axum::{Extension, Json, extract::Query};
 use axum_extra::{TypedHeader, extract::cookie::Cookie, headers::UserAgent};
 use sea_orm::DatabaseConnection;
@@ -15,16 +15,13 @@ use crate::{
     init_router,
     response::{ApiResponse, Null, ResponseJson},
     result::ServerResult,
-    routes::{
-        auth::dto::{
-            LoginRequestDto, LoginResponseDto, QueryDepartmentPermissionsDto,
-            QueryGroupPermissionsDto, QueryUserPermissionsDto, RegisterRequestDto,
-        },
-        permission::dto::PermissionDto,
+    routes::auth::dto::{
+        LoginRequestDto, LoginResponseDto, QueryDepartmentPermissionsDto, QueryGroupPermissionsDto,
+        QueryUserPermissionsDto, RegisterRequestDto,
     },
 };
 
-use super::dto::{AssignUserPermissionsDto, GroupTreePermissionsDto};
+use super::dto::AssignUserPermissionsDto;
 
 #[derive(OpenApi)]
 #[openapi(paths(
@@ -211,9 +208,10 @@ pub async fn assign_user_permissions(
     path = "/queryUserPermissions",
     params(QueryUserPermissionsDto),
     responses(
-        (status = OK, description = "ok", body = ResponseJson<Vec<PermissionDto>>)
+        (status = OK, description = "ok", body = ResponseJson<Null>)
     )
 )]
+#[axum::debug_handler]
 pub async fn query_user_permissions(
     session: AuthSession,
     auth_service: AppService<AuthService>,
@@ -222,7 +220,6 @@ pub async fn query_user_permissions(
     session.assert_has_permission(OperationPermission::QueryUserPermissions)?;
 
     let res = auth_service.query_user_permissions(query.user_id).await?;
-    let res = res.into_iter().map(PermissionDto::from).collect::<Vec<_>>();
 
     Ok(ApiResponse::json(res))
 }
@@ -235,7 +232,7 @@ pub async fn query_user_permissions(
     path = "/queryGroupPermissions",
     params(QueryGroupPermissionsDto),
     responses(
-        (status = OK, description = "ok", body = ResponseJson<GroupPermissionChainNode>)
+        (status = OK, description = "ok", body = ResponseJson<Null>)
     )
 )]
 pub async fn query_group_permissions(
@@ -245,15 +242,7 @@ pub async fn query_group_permissions(
 ) -> ServerResult<ApiResponse> {
     session.assert_has_permission(OperationPermission::QueryGroupPermissions)?;
 
-    let res = auth_service
-        .query_group_chain_permissions(query.group_id)
-        .await?;
-
-    Ok(ApiResponse::json(
-        res.into_iter()
-            .map(PermissionDto::from)
-            .collect::<Vec<PermissionDto>>(),
-    ))
+    todo!()
 }
 
 /// Query department permissions
@@ -264,7 +253,7 @@ pub async fn query_group_permissions(
     path = "/queryDepartmentPermissions",
     params(QueryDepartmentPermissionsDto),
     responses(
-        (status = OK, description = "ok", body = ResponseJson<Vec<PermissionDto>>)
+        (status = OK, description = "ok", body = ResponseJson<Vec<Null>>)
     )
 )]
 pub async fn query_department_permissions(
@@ -274,13 +263,5 @@ pub async fn query_department_permissions(
 ) -> ServerResult<ApiResponse> {
     session.assert_has_permission(OperationPermission::QueryDepartmentPermissions)?;
 
-    let res = auth_service
-        .query_department_permissions(query.department_id)
-        .await?;
-
-    Ok(ApiResponse::json(
-        res.into_iter()
-            .map(PermissionDto::from)
-            .collect::<Vec<PermissionDto>>(),
-    ))
+    todo!()
 }

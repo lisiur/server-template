@@ -62,8 +62,10 @@ impl UserGroupService {
         Ok(tree)
     }
 
-    pub async fn query_group_ancestors(&self, group_id: Uuid) -> AppResult<Vec<UserGroup>> {
-        let groups = self.query_user_group_ancestors_models(group_id).await?;
+    pub async fn query_user_group_ancestors(&self, group_id: Uuid) -> AppResult<Vec<UserGroup>> {
+        let groups = TreeQuery::new(user_groups::Entity)
+            .query_ancestors_with_one(&self.0, group_id)
+            .await?;
         if groups.is_empty() {
             return Err(AppException::UserGroupNotFound.into());
         }
@@ -75,8 +77,12 @@ impl UserGroupService {
         &self,
         group_id_list: Vec<Uuid>,
     ) -> AppResult<Vec<UserGroup>> {
-        let groups = self
-            .query_many_user_group_ancestors_models(group_id_list)
+        if group_id_list.is_empty() {
+            return Ok(vec![]);
+        }
+
+        let groups = TreeQuery::new(user_groups::Entity)
+            .query_ancestors_with_many(&self.0, group_id_list)
             .await?;
         if groups.is_empty() {
             return Err(AppException::UserGroupNotFound.into());
@@ -91,28 +97,6 @@ impl UserGroupService {
     ) -> AppResult<Vec<user_groups::Model>> {
         let groups = TreeQuery::new(user_groups::Entity)
             .query_descendants_with_one(&self.0, group_id)
-            .await?;
-
-        Ok(groups)
-    }
-
-    pub async fn query_user_group_ancestors_models(
-        &self,
-        group_id: Uuid,
-    ) -> AppResult<Vec<user_groups::Model>> {
-        let groups = TreeQuery::new(user_groups::Entity)
-            .query_ancestors_with_one(&self.0, group_id)
-            .await?;
-
-        Ok(groups)
-    }
-
-    pub async fn query_many_user_group_ancestors_models(
-        &self,
-        group_id_list: Vec<Uuid>,
-    ) -> AppResult<Vec<user_groups::Model>> {
-        let groups = TreeQuery::new(user_groups::Entity)
-            .query_ancestors_with_many(&self.0, group_id_list)
             .await?;
 
         Ok(groups)

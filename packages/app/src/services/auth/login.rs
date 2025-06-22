@@ -54,11 +54,7 @@ impl AuthService {
                 agent: params.agent,
                 expired_at: None,
                 user_id: user.id,
-                permissions: user_permissions
-                    .flatten_permissions()
-                    .into_iter()
-                    .map(|x| x.code)
-                    .collect(),
+                permissions: user_permissions.permission_code_list(),
                 roles: roles.into_iter().map(|x| x.id).collect(),
                 groups: groups.into_iter().map(|x| x.id).collect(),
                 departments: departments.into_iter().map(|x| x.id).collect(),

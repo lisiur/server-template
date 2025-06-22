@@ -1,7 +1,12 @@
 use chrono::{DateTime, Utc};
 use entity::roles;
+use serde::Serialize;
+use utoipa::ToSchema;
 use uuid::Uuid;
 
+#[derive(ToSchema, Serialize)]
+#[serde(rename_all = "camelCase")]
+#[schema(rename_all = "camelCase")]
 pub struct Role {
     pub id: Uuid,
     pub name: String,

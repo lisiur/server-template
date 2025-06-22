@@ -120,7 +120,6 @@ impl RoleGroupService {
         department_id_list: Vec<Uuid>,
     ) -> AppResult<HashMap<Uuid, Vec<RoleGroup>>> {
         let results = role_groups::Entity::find()
-            .inner_join(relation_role_groups_departments::Entity)
             .find_also_related(relation_role_groups_departments::Entity)
             .filter(
                 relation_role_groups_departments::Column::DepartmentId.is_in(department_id_list),
@@ -142,7 +141,6 @@ impl RoleGroupService {
         user_group_id_list: Vec<Uuid>,
     ) -> AppResult<HashMap<Uuid, Vec<RoleGroup>>> {
         let results = role_groups::Entity::find()
-            .inner_join(relation_role_groups_user_groups::Entity)
             .find_also_related(relation_role_groups_user_groups::Entity)
             .filter(relation_role_groups_user_groups::Column::UserGroupId.is_in(user_group_id_list))
             .all(&self.0)

@@ -1,7 +1,12 @@
 use chrono::{DateTime, Utc};
 use entity::user_groups;
+use serde::Serialize;
+use utoipa::ToSchema;
 use uuid::Uuid;
 
+#[derive(ToSchema, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+#[schema(rename_all = "camelCase")]
 pub struct UserGroup {
     pub id: Uuid,
     pub name: String,

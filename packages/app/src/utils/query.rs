@@ -349,13 +349,16 @@ impl<T: EntityTrait> TreeQuery<T> {
         db: &DatabaseConnection,
         ids: Vec<Uuid>,
     ) -> AppResult<Vec<T::Model>> {
+        if ids.is_empty() {
+            return Ok(vec![]);
+        }
         let models = T::find()
             .from_raw_sql(Statement::from_sql_and_values(
                 db.get_database_backend(),
                 format!(
                     r#"
                         WITH RECURSIVE tree AS (
-                            SELECT * FROM {table} WHERE {id} = $1
+                            SELECT * FROM {table} WHERE {id} = ANY($1)
                             UNION ALL
                             SELECT g.* FROM {table} g
                             JOIN tree t ON g.{parent_id} = t.{id}
@@ -409,13 +412,16 @@ impl<T: EntityTrait> TreeQuery<T> {
         db: &DatabaseConnection,
         ids: Vec<Uuid>,
     ) -> AppResult<Vec<T::Model>> {
+        if ids.len() == 0 {
+            return Ok(vec![]);
+        }
         let models = T::find()
             .from_raw_sql(Statement::from_sql_and_values(
                 db.get_database_backend(),
                 format!(
                     r#"
                         WITH RECURSIVE tree AS (
-                            SELECT * FROM {table} WHERE {id} = $1
+                            SELECT * FROM {table} WHERE {id} = ANY($1)
                             UNION ALL
                             SELECT g.* FROM {table} g
                             JOIN tree t ON g.{id} = t.{parent_id}

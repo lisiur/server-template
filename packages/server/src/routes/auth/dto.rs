@@ -101,7 +101,4 @@ pub struct QueryDepartmentPermissionsDto {
 }
 
 #[derive(Serialize, ToSchema)]
-pub struct GroupTreePermissionsDto(pub Rc<std::cell::RefCell<GroupPermissionTreeGroupNode>>);
-
-#[derive(Serialize, ToSchema)]
 pub struct GroupChainPermissionsDto(pub Vec<GroupPermissionChainNode>);
