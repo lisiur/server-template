@@ -41,6 +41,18 @@ impl PermissionGroupService {
         Ok((permission_groups, count))
     }
 
+    pub async fn query_permission_group_by_id(
+        &self,
+        permission_group_id: Uuid,
+    ) -> AppResult<PermissionGroup> {
+        let permission_group = permission_groups::Entity::find_by_id(permission_group_id)
+            .one(&self.0)
+            .await?
+            .ok_or(AppException::PermissionGroupNotFound)?;
+
+        Ok(PermissionGroup::from(permission_group))
+    }
+
     pub async fn query_permission_group_tree(
         &self,
         permission_group_id: Uuid,
@@ -106,6 +118,31 @@ impl PermissionGroupService {
         Ok(groups.into_iter().map(PermissionGroup::from).collect())
     }
 
+    pub async fn query_permission_groups_by_user_id_list(&self, user_id_list: Vec<Uuid>) -> AppResult<HashMap<Uuid, Vec<PermissionGroup>>> {
+        if user_id_list.is_empty() {
+            return Ok(HashMap::new());
+        }
+
+        let results = permission_groups::Entity::find()
+            .find_also_related(relation_permission_groups_users::Entity)
+            .filter(
+                relation_permission_groups_users::Column::UserId
+                    .is_in(user_id_list),
+            )
+            .all(&self.0)
+            .await?;
+
+        let mut map = HashMap::new();
+        for (permission_group, relation) in results {
+            let user_id = relation.unwrap().user_id;
+            map.entry(user_id)
+                .or_insert_with(Vec::new)
+                .push(PermissionGroup::from(permission_group));
+        }
+
+        Ok(map)
+    }
+
     pub async fn query_permission_groups_by_department_id(
         &self,
         department_id: Uuid,
@@ -123,6 +160,10 @@ impl PermissionGroupService {
         &self,
         department_id_list: Vec<Uuid>,
     ) -> AppResult<HashMap<Uuid, Vec<PermissionGroup>>> {
+        if department_id_list.is_empty() {
+            return Ok(HashMap::new());
+        }
+
         let results = permission_groups::Entity::find()
             .find_also_related(relation_permission_groups_departments::Entity)
             .filter(
@@ -160,6 +201,10 @@ impl PermissionGroupService {
         &self,
         user_group_id_list: Vec<Uuid>,
     ) -> AppResult<HashMap<Uuid, Vec<PermissionGroup>>> {
+        if user_group_id_list.is_empty() {
+            return Ok(HashMap::new());
+        }
+
         let results = permission_groups::Entity::find()
             .find_also_related(relation_permission_groups_user_groups::Entity)
             .filter(
@@ -197,6 +242,10 @@ impl PermissionGroupService {
         &self,
         role_id_list: Vec<Uuid>,
     ) -> AppResult<HashMap<Uuid, Vec<PermissionGroup>>> {
+        if role_id_list.is_empty() {
+            return Ok(HashMap::new());
+        }
+
         let results = permission_groups::Entity::find()
             .find_also_related(relation_permission_groups_roles::Entity)
             .filter(

@@ -38,6 +38,15 @@ impl RoleGroupService {
         Ok((role_groups, count))
     }
 
+    pub async fn query_role_group_by_id(&self, role_group_id: Uuid) -> AppResult<RoleGroup> {
+        let role_group = role_groups::Entity::find_by_id(role_group_id)
+            .one(&self.0)
+            .await?
+            .ok_or(AppException::RoleGroupNotFound)?;
+
+        Ok(RoleGroup::from(role_group))
+    }
+
     pub async fn query_role_group_tree(&self, role_group_id: Uuid) -> AppResult<RoleGroupTree> {
         let role_groups = TreeQuery::new(role_groups::Entity)
             .query_descendants_with_one(&self.0, role_group_id)
@@ -100,6 +109,31 @@ impl RoleGroupService {
             .await?;
 
         Ok(groups.into_iter().map(RoleGroup::from).collect())
+    }
+
+    pub async fn query_role_groups_by_user_id_list(&self, user_id_list: Vec<Uuid>) -> AppResult<HashMap<Uuid, Vec<RoleGroup>>> {
+        if user_id_list.is_empty() {
+            return Ok(HashMap::new());
+        }
+
+        let results = role_groups::Entity::find()
+            .find_also_related(relation_role_groups_users::Entity)
+            .filter(
+                relation_role_groups_users::Column::UserId
+                    .is_in(user_id_list),
+            )
+            .all(&self.0)
+            .await?;
+
+        let mut map = HashMap::new();
+        for (role_group, relation) in results {
+            let user_id = relation.unwrap().user_id;
+            map.entry(user_id)
+                .or_insert_with(Vec::new)
+                .push(RoleGroup::from(role_group));
+        }
+
+        Ok(map)
     }
 
     pub async fn query_role_groups_by_department_id(

@@ -1,4 +1,4 @@
-use app::services::auth::{AuthService, query_permissions::UserPermissions};
+use app::services::auth::{AuthService, query_permissions::AssignedUserPermissions};
 use axum::{Extension, Json, extract::Query};
 use axum_extra::{TypedHeader, extract::cookie::Cookie, headers::UserAgent};
 use sea_orm::DatabaseConnection;
@@ -31,7 +31,7 @@ use super::dto::AssignUserPermissionsDto;
     logout_all,
     assign_user_permissions,
     query_user_permissions,
-    query_group_permissions,
+    query_user_group_permissions,
     query_department_permissions,
 ))]
 pub(crate) struct ApiDoc;
@@ -42,7 +42,7 @@ init_router!(
     logout_all,
     assign_user_permissions,
     query_user_permissions,
-    query_group_permissions,
+    query_user_group_permissions,
     query_department_permissions
 );
 
@@ -211,7 +211,6 @@ pub async fn assign_user_permissions(
         (status = OK, description = "ok", body = ResponseJson<Null>)
     )
 )]
-#[axum::debug_handler]
 pub async fn query_user_permissions(
     session: AuthSession,
     auth_service: AppService<AuthService>,
@@ -226,23 +225,27 @@ pub async fn query_user_permissions(
 
 /// Query group permissions
 #[utoipa::path(
-    operation_id = "queryGroupPermissions",
-    description = "Query group permissions",
+    operation_id = "queryUserGroupPermissions",
+    description = "Query user group permissions",
     get,
-    path = "/queryGroupPermissions",
+    path = "/queryUserGroupPermissions",
     params(QueryGroupPermissionsDto),
     responses(
         (status = OK, description = "ok", body = ResponseJson<Null>)
     )
 )]
-pub async fn query_group_permissions(
+pub async fn query_user_group_permissions(
     session: AuthSession,
     auth_service: AppService<AuthService>,
     Query(query): Query<QueryGroupPermissionsDto>,
 ) -> ServerResult<ApiResponse> {
     session.assert_has_permission(OperationPermission::QueryGroupPermissions)?;
 
-    todo!()
+    let res = auth_service
+        .query_group_permissions(query.user_group_id)
+        .await?;
+
+    Ok(ApiResponse::json(res))
 }
 
 /// Query department permissions
@@ -261,7 +264,11 @@ pub async fn query_department_permissions(
     auth_service: AppService<AuthService>,
     Query(query): Query<QueryDepartmentPermissionsDto>,
 ) -> ServerResult<ApiResponse> {
-    session.assert_has_permission(OperationPermission::QueryDepartmentPermissions)?;
+    // session.assert_has_permission(OperationPermission::QueryDepartmentPermissions)?;
 
-    todo!()
+    let res = auth_service
+        .query_department_permissions(query.department_id)
+        .await?;
+
+    Ok(ApiResponse::json(res))
 }

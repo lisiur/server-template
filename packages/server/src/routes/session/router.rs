@@ -1,11 +1,11 @@
-use app::services::{auth_token::AuthTokenService, user::UserService};
+use app::services::{auth::AuthService, auth_token::AuthTokenService, user::UserService};
 use axum::{Extension, extract::Query, response::IntoResponse};
 use sea_orm::DatabaseConnection;
 use utoipa::OpenApi;
 
 use crate::{
     error::ServerExceptionCode,
-    extractors::auth_session::AuthSession,
+    extractors::{app_service::AppService, auth_session::AuthSession},
     init_router,
     response::{ApiResponse, Null, ResponseJson},
     result::ServerResult,
@@ -15,9 +15,19 @@ use crate::{
 use super::dto::SessionInfoDto;
 
 #[derive(OpenApi)]
-#[openapi(paths(query_session, query_active_sessions, delete_session))]
+#[openapi(paths(
+    query_session,
+    query_session_permissions,
+    query_active_sessions,
+    delete_session
+))]
 pub(crate) struct ApiDoc;
-init_router!(query_session, query_active_sessions, delete_session);
+init_router!(
+    query_session,
+    query_session_permissions,
+    query_active_sessions,
+    delete_session
+);
 
 #[utoipa::path(
     get,
@@ -39,6 +49,23 @@ pub async fn query_session(
         nickname: user.nickname,
         permissions: auth_session.payload.permissions,
     }))
+}
+
+#[utoipa::path(
+    get,
+    path = "/querySessionPermissions",
+    responses(
+        (status = OK, description = "ok", body = ResponseJson<Null>)
+    )
+)]
+/// Query session Permissions
+pub async fn query_session_permissions(
+    auth_session: AuthSession,
+    auth_service: AppService<AuthService>,
+) -> ServerResult<ApiResponse> {
+    let user_id = auth_session.payload.user_id;
+    let (user_permissions, _) = auth_service.query_user_permissions(user_id).await?;
+    Ok(ApiResponse::json(user_permissions))
 }
 
 #[utoipa::path(

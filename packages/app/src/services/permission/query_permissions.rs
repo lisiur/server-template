@@ -48,6 +48,30 @@ impl PermissionService {
         Ok(permissions.into_iter().map(Permission::from).collect())
     }
 
+    pub async fn query_permissions_by_user_id_list(
+        &self,
+        user_id_list: Vec<Uuid>,
+    ) -> AppResult<HashMap<Uuid, Vec<Permission>>> {
+        if user_id_list.is_empty() {
+            return Ok(HashMap::new());
+        }
+        let results = permissions::Entity::find()
+            .find_also_related(relation_permissions_users::Entity)
+            .filter(relation_permissions_users::Column::UserId.is_in(user_id_list))
+            .all(&self.0)
+            .await?;
+
+        let mut map = HashMap::new();
+        for (permission, relation) in results {
+            let user_id = relation.unwrap().user_id;
+            map.entry(user_id)
+                .or_insert_with(Vec::new)
+                .push(Permission::from(permission));
+        }
+
+        Ok(map)
+    }
+
     pub async fn query_permissions_by_role_id(&self, role_id: Uuid) -> AppResult<Vec<Permission>> {
         let permissions = permissions::Entity::find()
             .inner_join(relation_permissions_roles::Entity)
@@ -60,11 +84,14 @@ impl PermissionService {
 
     pub async fn query_permissions_by_roles_id_list(
         &self,
-        roles_id_list: Vec<Uuid>,
+        role_id_list: Vec<Uuid>,
     ) -> AppResult<HashMap<Uuid, Vec<Permission>>> {
+        if role_id_list.is_empty() {
+            return Ok(HashMap::new());
+        }
         let results = permissions::Entity::find()
             .find_also_related(relation_permissions_roles::Entity)
-            .filter(relation_permissions_roles::Column::RoleId.is_in(roles_id_list))
+            .filter(relation_permissions_roles::Column::RoleId.is_in(role_id_list))
             .all(&self.0)
             .await?;
 

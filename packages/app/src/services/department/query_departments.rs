@@ -3,12 +3,12 @@ use serde::Serialize;
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 use utoipa::ToSchema;
 
-use entity::{departments, relation_roles_departments, relation_users_departments};
+use entity::{departments, relation_roles_departments, relation_users_departments, relation_users_user_groups, user_groups, users};
 use uuid::Uuid;
 
 use crate::{
     error::AppException,
-    models::department::Department,
+    models::{department::Department, user_group::UserGroup},
     result::AppResult,
     services::department::DepartmentService,
     utils::query::{Cursor, FilterAtom, FilterCondition, PageableQuery, SelectQuery},
@@ -35,6 +35,18 @@ impl DepartmentService {
         let departments = departments.into_iter().map(Department::from).collect();
 
         Ok((departments, count))
+    }
+
+    pub async fn query_department_by_id(&self, department_id: Uuid) -> AppResult<Department> {
+        let department = departments::Entity::find_by_id(department_id)
+            .one(&self.0)
+            .await?;
+
+        let Some(department) = department else {
+            return Err(AppException::DepartmentNotFound.into());
+        };
+
+        Ok(Department::from(department))
     }
 
     pub async fn query_department_tree(&self, department_id: Uuid) -> AppResult<DepartmentTree> {
@@ -136,6 +148,31 @@ impl DepartmentService {
             .await?;
 
         Ok(groups.into_iter().map(Department::from).collect())
+    }
+
+    pub async fn query_departments_by_user_id_list(&self, user_id_list: Vec<Uuid>) -> AppResult<HashMap<Uuid, Vec<Department>>> {
+        if user_id_list.is_empty() {
+            return Ok(HashMap::new());
+        }
+
+        let results = departments::Entity::find()
+            .find_also_related(relation_users_departments::Entity)
+            .filter(
+                relation_users_departments::Column::UserId
+                    .is_in(user_id_list),
+            )
+            .all(&self.0)
+            .await?;
+
+        let mut map = HashMap::new();
+        for (department, relation) in results {
+            let user_id = relation.unwrap().user_id;
+            map.entry(user_id)
+                .or_insert_with(Vec::new)
+                .push(Department::from(department));
+        }
+
+        Ok(map)
     }
 
     pub async fn query_departments_by_role_id(&self, role_id: Uuid) -> AppResult<Vec<Department>> {

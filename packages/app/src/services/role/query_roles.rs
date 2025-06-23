@@ -1,11 +1,13 @@
 use std::collections::HashMap;
 
 use crate::{
-    models::role::Role,
-    utils::query::{FilterAtom, FilterCondition, PageableQuery},
+    error::AppException, models::role::Role, utils::query::{FilterAtom, FilterCondition, PageableQuery}
 };
-use entity::{relation_roles_departments, relation_roles_role_groups, relation_roles_user_groups, relation_roles_users, roles};
-use sea_orm::{Condition, prelude::*};
+use entity::{
+    relation_roles_departments, relation_roles_role_groups, relation_roles_user_groups,
+    relation_roles_users, roles,
+};
+use sea_orm::prelude::*;
 use uuid::Uuid;
 
 use crate::{result::AppResult, services::role::RoleService, utils::query::SelectQuery};
@@ -34,6 +36,18 @@ impl RoleService {
         Ok((roles, count))
     }
 
+    pub async fn query_role_by_id(&self, id: Uuid) -> AppResult<Role> {
+        let role = roles::Entity::find_by_id(id)
+            .one(&self.0)
+            .await?;
+
+        let Some(role) = role else {
+            return Err(AppException::RoleNotFound.into());
+        };
+
+        Ok(Role::from(role))
+    }
+
     /// Query role group's roles
     pub async fn query_roles_by_role_group_id(&self, role_group_id: Uuid) -> AppResult<Vec<Role>> {
         let roles = roles::Entity::find()
@@ -53,6 +67,31 @@ impl RoleService {
             .await?;
 
         Ok(roles.into_iter().map(Role::from).collect())
+    }
+
+    pub async fn query_roles_by_user_id_list(&self, user_id_list: Vec<Uuid>) -> AppResult<HashMap<Uuid, Vec<Role>>> {
+        if user_id_list.is_empty() {
+            return Ok(HashMap::new());
+        }
+
+        let results = roles::Entity::find()
+            .find_also_related(relation_roles_users::Entity)
+            .filter(
+                relation_roles_users::Column::UserId
+                    .is_in(user_id_list),
+            )
+            .all(&self.0)
+            .await?;
+
+        let mut map = HashMap::new();
+        for (role, relation) in results {
+            let user_id = relation.unwrap().user_id;
+            map.entry(user_id)
+                .or_insert_with(Vec::new)
+                .push(Role::from(role));
+        }
+
+        Ok(map)
     }
 
     /// Query user_group's roles
@@ -79,7 +118,9 @@ impl RoleService {
         let mut map = HashMap::new();
         for (role, relation) in results {
             let user_group_id = relation.unwrap().user_group_id;
-            map.entry(user_group_id).or_insert_with(Vec::new).push(Role::from(role));
+            map.entry(user_group_id)
+                .or_insert_with(Vec::new)
+                .push(Role::from(role));
         }
         Ok(map)
     }
@@ -97,7 +138,9 @@ impl RoleService {
         let mut map = HashMap::new();
         for (role, relation) in results {
             let role_group_id = relation.unwrap().role_group_id;
-            map.entry(role_group_id).or_insert_with(Vec::new).push(Role::from(role));
+            map.entry(role_group_id)
+                .or_insert_with(Vec::new)
+                .push(Role::from(role));
         }
         Ok(map)
     }
@@ -127,7 +170,9 @@ impl RoleService {
         let mut map = HashMap::new();
         for (role, relation) in results {
             let department_id = relation.unwrap().department_id;
-            map.entry(department_id).or_insert_with(Vec::new).push(Role::from(role));
+            map.entry(department_id)
+                .or_insert_with(Vec::new)
+                .push(Role::from(role));
         }
         Ok(map)
     }

@@ -37,6 +37,16 @@ impl UserGroupService {
         Ok((groups, count))
     }
 
+    pub async fn query_user_group_by_id(&self, id: Uuid) -> AppResult<UserGroup> {
+        let group = user_groups::Entity::find_by_id(id).one(&self.0).await?;
+
+        let Some(group) = group else {
+            return Err(AppException::UserGroupNotFound.into());
+        };
+
+        Ok(UserGroup::from(group))
+    }
+
     pub async fn query_group_tree(&self, group_id: Uuid) -> AppResult<GroupTree> {
         let groups = self.query_group_tree_models(group_id).await?;
         if groups.is_empty() {
@@ -112,7 +122,32 @@ impl UserGroupService {
         Ok(groups.into_iter().map(UserGroup::from).collect())
     }
 
-    pub async fn query_groups_by_role_id(&self, role_id: Uuid) -> AppResult<Vec<UserGroup>> {
+    pub async fn query_user_groups_by_user_id_list(
+        &self,
+        user_id_list: Vec<Uuid>,
+    ) -> AppResult<HashMap<Uuid, Vec<UserGroup>>> {
+        if user_id_list.is_empty() {
+            return Ok(HashMap::new());
+        }
+
+        let results = user_groups::Entity::find()
+            .find_also_related(relation_users_user_groups::Entity)
+            .filter(relation_users_user_groups::Column::UserId.is_in(user_id_list))
+            .all(&self.0)
+            .await?;
+
+        let mut map = HashMap::new();
+        for (department, relation) in results {
+            let user_id = relation.unwrap().user_id;
+            map.entry(user_id)
+                .or_insert_with(Vec::new)
+                .push(UserGroup::from(department));
+        }
+
+        Ok(map)
+    }
+
+    pub async fn query_user_groups_by_role_id(&self, role_id: Uuid) -> AppResult<Vec<UserGroup>> {
         let groups = user_groups::Entity::find()
             .inner_join(relation_roles_user_groups::Entity)
             .filter(relation_roles_user_groups::Column::RoleId.eq(role_id))

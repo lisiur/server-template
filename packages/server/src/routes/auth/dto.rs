@@ -1,10 +1,6 @@
-use std::rc::Rc;
-
 use app::services::auth::{
-    assign_permissions::AssignUserPermissionsParams,
-    login::LoginParams,
-    query_permissions::{GroupPermissionChainNode, GroupPermissionTreeGroupNode},
-    register::RegisterParams,
+    assign_permissions::AssignUserPermissionsParams, login::LoginParams,
+    query_permissions::GroupPermissionChainNode, register::RegisterParams,
 };
 use serde::{Deserialize, Serialize};
 use utoipa::{IntoParams, ToSchema};
@@ -90,7 +86,7 @@ pub struct QueryUserPermissionsDto {
 #[into_params(parameter_in = Query)]
 #[serde(rename_all = "camelCase")]
 pub struct QueryGroupPermissionsDto {
-    pub group_id: Uuid,
+    pub user_group_id: Uuid,
 }
 
 #[derive(Deserialize, IntoParams)]
