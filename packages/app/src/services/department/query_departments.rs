@@ -3,12 +3,12 @@ use serde::Serialize;
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 use utoipa::ToSchema;
 
-use entity::{departments, relation_roles_departments, relation_users_departments, relation_users_user_groups, user_groups, users};
+use entity::{departments, relation_roles_departments, relation_users_departments};
 use uuid::Uuid;
 
 use crate::{
     error::AppException,
-    models::{department::Department, user_group::UserGroup},
+    models::department::Department,
     result::AppResult,
     services::department::DepartmentService,
     utils::query::{Cursor, FilterAtom, FilterCondition, PageableQuery, SelectQuery},
@@ -150,17 +150,17 @@ impl DepartmentService {
         Ok(groups.into_iter().map(Department::from).collect())
     }
 
-    pub async fn query_departments_by_user_id_list(&self, user_id_list: Vec<Uuid>) -> AppResult<HashMap<Uuid, Vec<Department>>> {
+    pub async fn query_departments_by_user_id_list(
+        &self,
+        user_id_list: Vec<Uuid>,
+    ) -> AppResult<HashMap<Uuid, Vec<Department>>> {
         if user_id_list.is_empty() {
             return Ok(HashMap::new());
         }
 
         let results = departments::Entity::find()
             .find_also_related(relation_users_departments::Entity)
-            .filter(
-                relation_users_departments::Column::UserId
-                    .is_in(user_id_list),
-            )
+            .filter(relation_users_departments::Column::UserId.is_in(user_id_list))
             .all(&self.0)
             .await?;
 

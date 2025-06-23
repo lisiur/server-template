@@ -9,15 +9,27 @@ use uuid::Uuid;
 
 use crate::{
     models::{
-        department::Department, permission::Permission, permission_group::PermissionGroup, role::Role, role_group::RoleGroup, user::User, user_group::UserGroup
+        department::Department, permission::Permission, permission_group::PermissionGroup,
+        role::Role, role_group::RoleGroup, user::User, user_group::UserGroup,
     },
     result::AppResult,
     services::{
-        department::DepartmentService, permission::PermissionService, permission_group::PermissionGroupService, role::RoleService, role_group::RoleGroupService, user::UserService, user_group::UserGroupService
+        department::DepartmentService, permission::PermissionService,
+        permission_group::PermissionGroupService, role::RoleService, role_group::RoleGroupService,
+        user::UserService, user_group::UserGroupService,
     },
 };
 
 use super::AuthService;
+
+fn distict_permission(permissions: Vec<Arc<Mutex<Permission>>>) -> Vec<Arc<Mutex<Permission>>> {
+    let mut permission_map = HashMap::new();
+    for permission in permissions {
+        let id = permission.lock().unwrap().id;
+        permission_map.entry(id).or_insert(permission.clone());
+    }
+    permission_map.into_values().collect()
+}
 
 #[derive(Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -25,6 +37,18 @@ pub struct AssignedPermissionGroupPermissions {
     pub permission_group: PermissionGroup,
     pub permissions: Vec<Arc<Mutex<Permission>>>,
     pub children: HashMap<Uuid, Arc<Mutex<AssignedPermissionGroupPermissions>>>,
+}
+
+impl AssignedPermissionGroupPermissions {
+    pub fn flatten_permissions(&self) -> Vec<Arc<Mutex<Permission>>> {
+        let mut permissions = self.permissions.clone();
+
+        for child in self.children.values() {
+            permissions.extend(child.lock().unwrap().flatten_permissions());
+        }
+
+        distict_permission(permissions)
+    }
 }
 
 #[derive(Serialize, Clone)]
@@ -35,6 +59,18 @@ pub struct AssignedRolePermissions {
     pub permission_groups: Vec<Arc<Mutex<AssignedPermissionGroupPermissions>>>,
 }
 
+impl AssignedRolePermissions {
+    pub fn flatten_permissions(&self) -> Vec<Arc<Mutex<Permission>>> {
+        let mut permissions = self.permissions.clone();
+
+        for permission_group in self.permission_groups.iter() {
+            permissions.extend(permission_group.lock().unwrap().flatten_permissions());
+        }
+
+        distict_permission(permissions)
+    }
+}
+
 #[derive(Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct AssignedRoleGroupPermissions {
@@ -43,15 +79,55 @@ pub struct AssignedRoleGroupPermissions {
     pub children: HashMap<Uuid, Arc<Mutex<AssignedRoleGroupPermissions>>>,
 }
 
+impl AssignedRoleGroupPermissions {
+    pub fn flatten_permissions(&self) -> Vec<Arc<Mutex<Permission>>> {
+        let mut permissions = vec![];
+
+        for role in &self.roles {
+            permissions.extend(role.lock().unwrap().flatten_permissions());
+        }
+
+        for child in self.children.values() {
+            permissions.extend(child.lock().unwrap().flatten_permissions());
+        }
+
+        distict_permission(permissions)
+    }
+}
+
 #[derive(Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct AssignedUserGroupPermissions {
     pub user_group: UserGroup,
-    pub inherited_group: Option<Arc<Mutex<AssignedUserGroupPermissions>>>,
     pub permissions: Vec<Arc<Mutex<Permission>>>,
+    pub inherited_group: Option<Arc<Mutex<AssignedUserGroupPermissions>>>,
     pub permission_groups: Vec<Arc<Mutex<AssignedPermissionGroupPermissions>>>,
     pub roles: Vec<Arc<Mutex<AssignedRolePermissions>>>,
     pub role_groups: Vec<Arc<Mutex<AssignedRoleGroupPermissions>>>,
+}
+
+impl AssignedUserGroupPermissions {
+    pub fn flatten_permissions(&self) -> Vec<Arc<Mutex<Permission>>> {
+        let mut permissions = self.permissions.clone();
+
+        if let Some(inherited_group) = &self.inherited_group {
+            permissions.extend(inherited_group.lock().unwrap().flatten_permissions());
+        }
+
+        for permission_group in &self.permission_groups {
+            permissions.extend(permission_group.lock().unwrap().flatten_permissions());
+        }
+
+        for role in &self.roles {
+            permissions.extend(role.lock().unwrap().flatten_permissions());
+        }
+
+        for role_group in &self.role_groups {
+            permissions.extend(role_group.lock().unwrap().flatten_permissions());
+        }
+
+        distict_permission(permissions)
+    }
 }
 
 #[derive(Serialize, Clone)]
@@ -64,26 +140,75 @@ pub struct AssignedDepartmentPermissions {
     pub role_groups: Vec<Arc<Mutex<AssignedRoleGroupPermissions>>>,
 }
 
+impl AssignedDepartmentPermissions {
+    pub fn flatten_permissions(&self) -> Vec<Arc<Mutex<Permission>>> {
+        let mut permissions = self.permissions.clone();
+
+        for permission_group in &self.permission_groups {
+            permissions.extend(permission_group.lock().unwrap().flatten_permissions());
+        }
+
+        for role in &self.roles {
+            permissions.extend(role.lock().unwrap().flatten_permissions());
+        }
+
+        for role_group in &self.role_groups {
+            permissions.extend(role_group.lock().unwrap().flatten_permissions());
+        }
+
+        distict_permission(permissions)
+    }
+}
+
 #[derive(Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct AssignedUserPermissions {
     pub user: User,
-    pub permissions: Vec<Arc<Mutex<Permission>>>,
-    pub permission_groups: Vec<Arc<Mutex<AssignedPermissionGroupPermissions>>>,
-    pub roles: Vec<Arc<Mutex<AssignedRolePermissions>>>,
-    pub role_groups: Vec<Arc<Mutex<AssignedRoleGroupPermissions>>>,
-    pub user_groups: Vec<Arc<Mutex<AssignedUserGroupPermissions>>>,
     pub departments: Vec<Arc<Mutex<AssignedDepartmentPermissions>>>,
+    pub user_groups: Vec<Arc<Mutex<AssignedUserGroupPermissions>>>,
+    pub role_groups: Vec<Arc<Mutex<AssignedRoleGroupPermissions>>>,
+    pub roles: Vec<Arc<Mutex<AssignedRolePermissions>>>,
+    pub permission_groups: Vec<Arc<Mutex<AssignedPermissionGroupPermissions>>>,
+    pub permissions: Vec<Arc<Mutex<Permission>>>,
+}
+
+impl AssignedUserPermissions {
+    pub fn flatten_permissions(&self) -> Vec<Arc<Mutex<Permission>>> {
+        let mut permissions = self.permissions.clone();
+
+        for permission_group in &self.permission_groups {
+            permissions.extend(permission_group.lock().unwrap().flatten_permissions());
+        }
+
+        for role in &self.roles {
+            permissions.extend(role.lock().unwrap().flatten_permissions());
+        }
+
+        for role_group in &self.role_groups {
+            permissions.extend(role_group.lock().unwrap().flatten_permissions());
+        }
+
+        for user_group in &self.user_groups {
+            permissions.extend(user_group.lock().unwrap().flatten_permissions());
+        }
+
+        for department in &self.departments {
+            permissions.extend(department.lock().unwrap().flatten_permissions());
+        }
+
+        distict_permission(permissions)
+    }
 }
 
 pub struct PermissionTree {
     users_map: HashMap<Uuid, Arc<Mutex<AssignedUserPermissions>>>,
-    permissions_map: HashMap<Uuid, Arc<Mutex<Permission>>>,
-    permission_groups_map: HashMap<Uuid, Arc<Mutex<AssignedPermissionGroupPermissions>>>,
-    roles_map: HashMap<Uuid, Arc<Mutex<AssignedRolePermissions>>>,
-    role_groups_map: HashMap<Uuid, Arc<Mutex<AssignedRoleGroupPermissions>>>,
-    user_groups_map: HashMap<Uuid, Arc<Mutex<AssignedUserGroupPermissions>>>,
     departments_map: HashMap<Uuid, Arc<Mutex<AssignedDepartmentPermissions>>>,
+    user_groups_map: HashMap<Uuid, Arc<Mutex<AssignedUserGroupPermissions>>>,
+    role_groups_map: HashMap<Uuid, Arc<Mutex<AssignedRoleGroupPermissions>>>,
+    roles_map: HashMap<Uuid, Arc<Mutex<AssignedRolePermissions>>>,
+    permission_groups_map: HashMap<Uuid, Arc<Mutex<AssignedPermissionGroupPermissions>>>,
+    #[allow(dead_code)]
+    permissions_map: HashMap<Uuid, Arc<Mutex<Permission>>>,
 }
 
 #[derive(Clone, Copy)]
@@ -128,16 +253,21 @@ impl AuthService {
                     departments: vec![],
                 };
                 users_map.insert(user_id, Arc::new(Mutex::new(user_permissions)));
-            },
+            }
             PermissionTreeEntry::PermissionGroupId(permission_group_id) => {
-                let permission_group = permission_group_service.query_permission_group_by_id(permission_group_id).await?;
+                let permission_group = permission_group_service
+                    .query_permission_group_by_id(permission_group_id)
+                    .await?;
                 let permission_group_permissions = AssignedPermissionGroupPermissions {
                     permission_group,
                     permissions: vec![],
                     children: HashMap::new(),
                 };
-                permission_groups_map.insert(permission_group_id, Arc::new(Mutex::new(permission_group_permissions)));
-            },
+                permission_groups_map.insert(
+                    permission_group_id,
+                    Arc::new(Mutex::new(permission_group_permissions)),
+                );
+            }
             PermissionTreeEntry::RoleId(role_id) => {
                 let role = role_service.query_role_by_id(role_id).await?;
                 let role_permissions = AssignedRolePermissions {
@@ -146,18 +276,22 @@ impl AuthService {
                     permission_groups: vec![],
                 };
                 roles_map.insert(role_id, Arc::new(Mutex::new(role_permissions)));
-            },
+            }
             PermissionTreeEntry::RoleGroupId(role_group_id) => {
-                let role_group = role_group_service.query_role_group_by_id(role_group_id).await?;
+                let role_group = role_group_service
+                    .query_role_group_by_id(role_group_id)
+                    .await?;
                 let role_group_permissions = AssignedRoleGroupPermissions {
                     role_group,
                     roles: vec![],
                     children: HashMap::new(),
                 };
                 role_groups_map.insert(role_group_id, Arc::new(Mutex::new(role_group_permissions)));
-            },
+            }
             PermissionTreeEntry::UserGroupId(user_group_id) => {
-                let user_group = user_group_service.query_user_group_by_id(user_group_id).await?;
+                let user_group = user_group_service
+                    .query_user_group_by_id(user_group_id)
+                    .await?;
                 let user_group_permissions = AssignedUserGroupPermissions {
                     user_group,
                     inherited_group: None,
@@ -167,9 +301,11 @@ impl AuthService {
                     role_groups: vec![],
                 };
                 user_groups_map.insert(user_group_id, Arc::new(Mutex::new(user_group_permissions)));
-            },
+            }
             PermissionTreeEntry::DepartmentId(department_id) => {
-                let department = department_service.query_department_by_id(department_id).await?;
+                let department = department_service
+                    .query_department_by_id(department_id)
+                    .await?;
                 let department_permissions = AssignedDepartmentPermissions {
                     department,
                     permissions: vec![],
@@ -178,7 +314,7 @@ impl AuthService {
                     role_groups: vec![],
                 };
                 departments_map.insert(department_id, Arc::new(Mutex::new(department_permissions)));
-            },
+            }
         };
 
         // 1. query user departments
@@ -187,32 +323,30 @@ impl AuthService {
             .query_departments_by_user_id_list(user_id_list)
             .await?;
 
-        departments
-            .into_iter()
-            .for_each(|(user_id, departments)| {
-                let departmentd_id_list = departments.iter().map(|x| x.id).collect::<Vec<_>>();
-                departments.into_iter().for_each(|department| {
-                    departments_map
-                        .entry(department.id)
-                        .or_insert(Arc::new(Mutex::new(AssignedDepartmentPermissions {
-                            department,
-                            permissions: vec![],
-                            permission_groups: vec![],
-                            roles: vec![],
-                            role_groups: vec![],
-                        })));
-                });
-                // fill user departments
-                users_map
-                    .get_mut(&user_id)
-                    .unwrap()
-                    .lock()
-                    .unwrap()
-                    .departments = departmentd_id_list
-                    .into_iter()
-                    .map(|department_id| departments_map.get(&department_id).unwrap().clone())
-                    .collect();
+        departments.into_iter().for_each(|(user_id, departments)| {
+            let departmentd_id_list = departments.iter().map(|x| x.id).collect::<Vec<_>>();
+            departments.into_iter().for_each(|department| {
+                departments_map
+                    .entry(department.id)
+                    .or_insert(Arc::new(Mutex::new(AssignedDepartmentPermissions {
+                        department,
+                        permissions: vec![],
+                        permission_groups: vec![],
+                        roles: vec![],
+                        role_groups: vec![],
+                    })));
             });
+            // fill user departments
+            users_map
+                .get_mut(&user_id)
+                .unwrap()
+                .lock()
+                .unwrap()
+                .departments = departmentd_id_list
+                .into_iter()
+                .map(|department_id| departments_map.get(&department_id).unwrap().clone())
+                .collect();
+        });
 
         // 2.1 query user_groups
         let user_id_list = users_map.keys().cloned().collect::<Vec<_>>();
@@ -220,33 +354,31 @@ impl AuthService {
             .query_user_groups_by_user_id_list(user_id_list)
             .await?;
 
-        user_groups
-            .into_iter()
-            .for_each(|(user_id, user_groups)| {
-                let user_group_id_list = user_groups.iter().map(|x| x.id).collect::<Vec<_>>();
-                user_groups.into_iter().for_each(|user_group| {
-                    user_groups_map
-                        .entry(user_group.id)
-                        .or_insert(Arc::new(Mutex::new(AssignedUserGroupPermissions {
-                            user_group,
-                            permissions: vec![],
-                            permission_groups: vec![],
-                            roles: vec![],
-                            role_groups: vec![],
-                            inherited_group: None,
-                        })));
-                });
-                // fill user groups
-                users_map
-                    .get_mut(&user_id)
-                    .unwrap()
-                    .lock()
-                    .unwrap()
-                    .user_groups = user_group_id_list
-                    .into_iter()
-                    .map(|user_group_id| user_groups_map.get(&user_group_id).unwrap().clone())
-                    .collect();
+        user_groups.into_iter().for_each(|(user_id, user_groups)| {
+            let user_group_id_list = user_groups.iter().map(|x| x.id).collect::<Vec<_>>();
+            user_groups.into_iter().for_each(|user_group| {
+                user_groups_map
+                    .entry(user_group.id)
+                    .or_insert(Arc::new(Mutex::new(AssignedUserGroupPermissions {
+                        user_group,
+                        permissions: vec![],
+                        permission_groups: vec![],
+                        roles: vec![],
+                        role_groups: vec![],
+                        inherited_group: None,
+                    })));
             });
+            // fill user groups
+            users_map
+                .get_mut(&user_id)
+                .unwrap()
+                .lock()
+                .unwrap()
+                .user_groups = user_group_id_list
+                .into_iter()
+                .map(|user_group_id| user_groups_map.get(&user_group_id).unwrap().clone())
+                .collect();
+        });
         // query all user group ancestors
         let user_group_id_list = user_groups_map.keys().cloned().collect::<Vec<_>>();
         let user_group_ancestors = user_group_service
@@ -287,30 +419,28 @@ impl AuthService {
             .query_role_groups_by_user_id_list(user_id_list)
             .await?;
 
-        role_groups
-            .into_iter()
-            .for_each(|(user_id, role_groups)| {
-                let role_group_id_list = role_groups.iter().map(|x| x.id).collect::<Vec<_>>();
-                role_groups.into_iter().for_each(|role_group| {
-                    role_groups_map
-                        .entry(role_group.id)
-                        .or_insert(Arc::new(Mutex::new(AssignedRoleGroupPermissions {
-                            role_group,
-                            roles: vec![],
-                            children: HashMap::new(),
-                        })));
-                });
-                // fill user role_groups
-                users_map
-                    .get_mut(&user_id)
-                    .unwrap()
-                    .lock()
-                    .unwrap()
-                    .role_groups = role_group_id_list
-                    .into_iter()
-                    .map(|role_group_id| role_groups_map.get(&role_group_id).unwrap().clone())
-                    .collect();
+        role_groups.into_iter().for_each(|(user_id, role_groups)| {
+            let role_group_id_list = role_groups.iter().map(|x| x.id).collect::<Vec<_>>();
+            role_groups.into_iter().for_each(|role_group| {
+                role_groups_map
+                    .entry(role_group.id)
+                    .or_insert(Arc::new(Mutex::new(AssignedRoleGroupPermissions {
+                        role_group,
+                        roles: vec![],
+                        children: HashMap::new(),
+                    })));
             });
+            // fill user role_groups
+            users_map
+                .get_mut(&user_id)
+                .unwrap()
+                .lock()
+                .unwrap()
+                .role_groups = role_group_id_list
+                .into_iter()
+                .map(|role_group_id| role_groups_map.get(&role_group_id).unwrap().clone())
+                .collect();
+        });
 
         // 3.2 query department role_groups
         let department_id_list = departments_map
@@ -414,30 +544,23 @@ impl AuthService {
             .query_roles_by_user_id_list(user_id_list)
             .await?;
 
-        roles
-            .into_iter()
-            .for_each(|(user_id, roles)| {
-                let role_id_list = roles.iter().map(|x| x.id).collect::<Vec<_>>();
-                roles.into_iter().for_each(|role| {
-                    roles_map
-                        .entry(role.id)
-                        .or_insert(Arc::new(Mutex::new(AssignedRolePermissions {
-                            role,
-                            permissions: vec![],
-                            permission_groups: vec![],
-                        })));
-                });
-                // fill user roles
-                users_map
-                    .get_mut(&user_id)
-                    .unwrap()
-                    .lock()
-                    .unwrap()
-                    .roles = role_id_list
-                    .into_iter()
-                    .map(|role_id| roles_map.get(&role_id).unwrap().clone())
-                    .collect();
+        roles.into_iter().for_each(|(user_id, roles)| {
+            let role_id_list = roles.iter().map(|x| x.id).collect::<Vec<_>>();
+            roles.into_iter().for_each(|role| {
+                roles_map
+                    .entry(role.id)
+                    .or_insert(Arc::new(Mutex::new(AssignedRolePermissions {
+                        role,
+                        permissions: vec![],
+                        permission_groups: vec![],
+                    })));
             });
+            // fill user roles
+            users_map.get_mut(&user_id).unwrap().lock().unwrap().roles = role_id_list
+                .into_iter()
+                .map(|role_id| roles_map.get(&role_id).unwrap().clone())
+                .collect();
+        });
 
         // 4.2 query department roles
         let department_id_list = departments_map
@@ -541,7 +664,8 @@ impl AuthService {
         permission_groups
             .into_iter()
             .for_each(|(user_id, permission_groups)| {
-                let permission_group_id_list = permission_groups.iter().map(|x| x.id).collect::<Vec<_>>();
+                let permission_group_id_list =
+                    permission_groups.iter().map(|x| x.id).collect::<Vec<_>>();
                 permission_groups.into_iter().for_each(|permission_group| {
                     permission_groups_map
                         .entry(permission_group.id)
@@ -559,7 +683,12 @@ impl AuthService {
                     .unwrap()
                     .permission_groups = permission_group_id_list
                     .into_iter()
-                    .map(|permission_group_id| permission_groups_map.get(&permission_group_id).unwrap().clone())
+                    .map(|permission_group_id| {
+                        permission_groups_map
+                            .get(&permission_group_id)
+                            .unwrap()
+                            .clone()
+                    })
                     .collect();
             });
 
@@ -720,26 +849,24 @@ impl AuthService {
             .query_permissions_by_user_id_list(user_id_list)
             .await?;
 
-        permissions
-            .into_iter()
-            .for_each(|(user_id, permissions)| {
-                let permission_id_list = permissions.iter().map(|x| x.id).collect::<Vec<_>>();
-                permissions.into_iter().for_each(|permission| {
-                    permissions_map
-                        .entry(permission.id)
-                        .or_insert(Arc::new(Mutex::new(permission)));
-                });
-                // fill user permissions
-                users_map
-                    .get_mut(&user_id)
-                    .unwrap()
-                    .lock()
-                    .unwrap()
-                    .permissions = permission_id_list
-                    .into_iter()
-                    .map(|permission_id| permissions_map.get(&permission_id).unwrap().clone())
-                    .collect();
+        permissions.into_iter().for_each(|(user_id, permissions)| {
+            let permission_id_list = permissions.iter().map(|x| x.id).collect::<Vec<_>>();
+            permissions.into_iter().for_each(|permission| {
+                permissions_map
+                    .entry(permission.id)
+                    .or_insert(Arc::new(Mutex::new(permission)));
             });
+            // fill user permissions
+            users_map
+                .get_mut(&user_id)
+                .unwrap()
+                .lock()
+                .unwrap()
+                .permissions = permission_id_list
+                .into_iter()
+                .map(|permission_id| permissions_map.get(&permission_id).unwrap().clone())
+                .collect();
+        });
 
         // 6.2 query department permissions
         let department_id_list = departments_map
@@ -879,53 +1006,126 @@ impl AuthService {
     pub async fn query_user_permissions(
         &self,
         user_id: Uuid,
-    ) -> AppResult<(AssignedUserPermissions, Vec<Permission>)> {
-        let permission_tree = self.query_permission_tree(PermissionTreeEntry::UserId(user_id)).await?;
+    ) -> AppResult<AssignedUserPermissions> {
+        let permission_tree = self
+            .query_permission_tree(PermissionTreeEntry::UserId(user_id))
+            .await?;
 
-        let user_permissions = permission_tree.users_map.get(&user_id).unwrap().clone().lock().unwrap().clone();
-        let permissions = permission_tree.permissions_map.values().map(|x| x.lock().unwrap().clone()).collect::<Vec<_>>();
+        let user_permissions = permission_tree
+            .users_map
+            .get(&user_id)
+            .unwrap()
+            .clone()
+            .lock()
+            .unwrap()
+            .clone();
 
-        Ok((user_permissions, permissions))
+        Ok(user_permissions)
     }
 
     /// Query role permissions by role id.
     pub async fn query_role_permissions(
         &self,
         role_id: Uuid,
-    ) -> AppResult<(AssignedRolePermissions, Vec<Permission>)> {
-        let permission_tree = self.query_permission_tree(PermissionTreeEntry::RoleId(role_id)).await?;
+    ) -> AppResult<AssignedRolePermissions> {
+        let permission_tree = self
+            .query_permission_tree(PermissionTreeEntry::RoleId(role_id))
+            .await?;
 
-        let role_permissions = permission_tree.roles_map.get(&role_id).unwrap().clone().lock().unwrap().clone();
-        let permissions = permission_tree.permissions_map.values().map(|x| x.lock().unwrap().clone()).collect::<Vec<_>>();
+        let role_permissions = permission_tree
+            .roles_map
+            .get(&role_id)
+            .unwrap()
+            .clone()
+            .lock()
+            .unwrap()
+            .clone();
 
-        Ok((role_permissions, permissions))
-
+        Ok(role_permissions)
     }
 
     /// Query department permissions by department id.
     pub async fn query_department_permissions(
         &self,
         department_id: Uuid,
-    ) -> AppResult<(AssignedDepartmentPermissions, Vec<Permission>)> {
-        let permission_tree = self.query_permission_tree(PermissionTreeEntry::DepartmentId(department_id)).await?;
+    ) -> AppResult<AssignedDepartmentPermissions> {
+        let permission_tree = self
+            .query_permission_tree(PermissionTreeEntry::DepartmentId(department_id))
+            .await?;
 
-        let department_permissions = permission_tree.departments_map.get(&department_id).unwrap().clone().lock().unwrap().clone();
-        let permissions = permission_tree.permissions_map.values().map(|x| x.lock().unwrap().clone()).collect::<Vec<_>>();
+        let department_permissions = permission_tree
+            .departments_map
+            .get(&department_id)
+            .unwrap()
+            .clone()
+            .lock()
+            .unwrap()
+            .clone();
 
-        Ok((department_permissions, permissions))
+        Ok(department_permissions)
     }
 
-    /// Query user group permissions by group id.
-    pub async fn query_group_permissions(
+    /// Query user group permissions by user_group id.
+    pub async fn query_user_group_permissions(
         &self,
         user_group_id: Uuid,
-    ) -> AppResult<(AssignedUserGroupPermissions, Vec<Permission>)> {
-        let permission_tree = self.query_permission_tree(PermissionTreeEntry::UserGroupId(user_group_id)).await?;
+    ) -> AppResult<AssignedUserGroupPermissions> {
+        let permission_tree = self
+            .query_permission_tree(PermissionTreeEntry::UserGroupId(user_group_id))
+            .await?;
 
-        let group_permissions = permission_tree.user_groups_map.get(&user_group_id).unwrap().clone().lock().unwrap().clone();
-        let permissions = permission_tree.permissions_map.values().map(|x| x.lock().unwrap().clone()).collect::<Vec<_>>();
+        let group_permissions = permission_tree
+            .user_groups_map
+            .get(&user_group_id)
+            .unwrap()
+            .clone()
+            .lock()
+            .unwrap()
+            .clone();
 
-        Ok((group_permissions, permissions))
+        Ok(group_permissions)
+    }
+
+    /// Query role_group permissions by role_group id.
+    pub async fn query_role_group_permissions(
+        &self,
+        role_group_id: Uuid,
+    ) -> AppResult<AssignedRoleGroupPermissions> {
+        let permission_tree = self
+            .query_permission_tree(PermissionTreeEntry::RoleGroupId(role_group_id))
+            .await?;
+
+        let group_permissions = permission_tree
+            .role_groups_map
+            .get(&role_group_id)
+            .unwrap()
+            .clone()
+            .lock()
+            .unwrap()
+            .clone();
+
+        Ok(group_permissions)
+    }
+
+    /// Query permission_group permissions by role_group id.
+    pub async fn query_permission_group_permissions(
+        &self,
+        permission_group_id: Uuid,
+    ) -> AppResult<AssignedPermissionGroupPermissions> {
+        let permission_tree = self
+            .query_permission_tree(PermissionTreeEntry::PermissionGroupId(permission_group_id))
+            .await?;
+
+        let group_permissions = permission_tree
+            .permission_groups_map
+            .get(&permission_group_id)
+            .unwrap()
+            .clone()
+            .lock()
+            .unwrap()
+            .clone();
+
+        Ok(group_permissions)
     }
 }
 

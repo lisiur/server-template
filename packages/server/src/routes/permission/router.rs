@@ -8,20 +8,28 @@ use crate::{
     dto::PaginatedQueryDto,
     extractors::auth_session::AuthSession,
     init_router,
-    response::{ApiResponse, PaginatedData, ResponseJson, ResponseJsonNull},
+    response::{ApiResponse, Null, PaginatedData, ResponseJson, ResponseJsonNull},
     result::ServerResult,
     routes::permission::dto::{
         CreatePermissionDto, DeletePermissionsRequestDto, FilterPermissionsDto, PermissionDto,
     },
 };
 
+use super::dto::UpdatePermissionRequestDto;
+
 #[derive(OpenApi)]
-#[openapi(paths(create_permission, query_permissions_by_page, delete_permissions))]
+#[openapi(paths(
+    create_permission,
+    query_permissions_by_page,
+    delete_permissions,
+    update_permission
+))]
 pub(crate) struct ApiDoc;
 init_router!(
     create_permission,
     query_permissions_by_page,
-    delete_permissions
+    delete_permissions,
+    update_permission
 );
 
 /// Query permissions by page
@@ -101,5 +109,28 @@ pub async fn delete_permissions(
 
     permission_service.delete_permissions(params.into()).await?;
 
+    Ok(ApiResponse::null())
+}
+
+/// Update permission
+#[utoipa::path(
+    operation_id = "updatePermission",
+    description = "Update permission",
+    patch,
+    path = "/updatePermission",
+    request_body = UpdatePermissionRequestDto,
+    responses(
+        (status = OK, description = "ok", body = ResponseJson<Null>)
+    )
+)]
+pub async fn update_permission(
+    session: AuthSession,
+    Extension(conn): Extension<DatabaseConnection>,
+    Json(params): Json<UpdatePermissionRequestDto>,
+) -> ServerResult<ApiResponse> {
+    session.assert_has_permission(OperationPermission::UpdateGroup)?;
+
+    let group_service = PermissionService::new(conn);
+    group_service.update_permission(params.into()).await?;
     Ok(ApiResponse::null())
 }

@@ -96,5 +96,26 @@ pub struct QueryDepartmentPermissionsDto {
     pub department_id: Uuid,
 }
 
+#[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
+#[serde(rename_all = "camelCase")]
+pub struct QueryRolePermissionsDto {
+    pub role_id: Uuid,
+}
+
+#[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
+#[serde(rename_all = "camelCase")]
+pub struct QueryRoleGroupPermissionsDto {
+    pub role_group_id: Uuid,
+}
+
+#[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
+#[serde(rename_all = "camelCase")]
+pub struct QueryPermissionGroupPermissionsDto {
+    pub permission_group_id: Uuid,
+}
+
 #[derive(Serialize, ToSchema)]
 pub struct GroupChainPermissionsDto(pub Vec<GroupPermissionChainNode>);

@@ -64,7 +64,7 @@ pub async fn query_session_permissions(
     auth_service: AppService<AuthService>,
 ) -> ServerResult<ApiResponse> {
     let user_id = auth_session.payload.user_id;
-    let (user_permissions, _) = auth_service.query_user_permissions(user_id).await?;
+    let user_permissions = auth_service.query_user_permissions(user_id).await?;
     Ok(ApiResponse::json(user_permissions))
 }
 

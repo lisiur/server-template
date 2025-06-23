@@ -77,14 +77,14 @@ async fn main() -> ServerResult<()> {
     #[openapi(
         info(description = "OpenApi Docs"),
         nest(
-            (path = "/auth", api = routes::auth::router::ApiDoc, tags = ["Auth"]),
-            (path = "/department", api = routes::department::router::ApiDoc, tags = ["Department"]),
-            (path = "/groups", api = routes::group::router::ApiDoc, tags = ["Group"]),
-            (path = "/permissions", api = routes::permission::router::ApiDoc, tags = ["Permission"]),
-            (path = "/roles", api = routes::role::router::ApiDoc, tags = ["Role"]),
-            (path = "/session", api = routes::session::router::ApiDoc, tags = ["Session"]),
             (path = "/system", api = routes::system::router::ApiDoc, tags = ["System"]),
+            (path = "/auth", api = routes::auth::router::ApiDoc, tags = ["Auth"]),
+            (path = "/session", api = routes::session::router::ApiDoc, tags = ["Session"]),
             (path = "/users", api = routes::user::router::ApiDoc, tags = ["User"]),
+            (path = "/department", api = routes::department::router::ApiDoc, tags = ["Department"]),
+            (path = "/userGroups", api = routes::user_group::router::ApiDoc, tags = ["UserGroup"]),
+            (path = "/roles", api = routes::role::router::ApiDoc, tags = ["Role"]),
+            (path = "/permissions", api = routes::permission::router::ApiDoc, tags = ["Permission"]),
         )
     )]
     struct ApiDoc;
@@ -103,7 +103,7 @@ async fn main() -> ServerResult<()> {
         .merge(Scalar::with_url("/docs", ApiDoc::openapi()))
         .nest("/auth", routes::auth::router::init())
         .nest("/department", routes::department::router::init())
-        .nest("/groups", routes::group::router::init())
+        .nest("/groups", routes::user_group::router::init())
         .nest("/permissions", routes::permission::router::init())
         .nest("/roles", routes::role::router::init())
         .nest("/session", routes::session::router::init())

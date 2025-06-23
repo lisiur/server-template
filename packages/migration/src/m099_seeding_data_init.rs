@@ -96,6 +96,9 @@ impl MigrationTrait for Migration {
             (OP::QueryUserPermissions, sys),
             (OP::QueryGroupPermissions, sys),
             (OP::QueryDepartmentPermissions, sys),
+            (OP::QueryRolePermissions, sys),
+            (OP::QueryRoleGroupPermissions, sys),
+            (OP::QueryPermissionGroupPermissions, sys),
         ];
 
         let permissions_id_list =

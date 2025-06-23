@@ -13,7 +13,7 @@ use crate::{
     init_router,
     response::{ApiResponse, Null, PaginatedData, ResponseJson},
     result::ServerResult,
-    routes::group::dto::{CreateGroupResponseDto, DeleteGroupsRequestDto, UpdateGroupRequestDto},
+    routes::user_group::dto::{CreateGroupResponseDto, DeleteGroupsRequestDto, UpdateGroupRequestDto},
 };
 
 use super::dto::{CreateGroupRequestDto, FilterGroupsDto, GroupDto};

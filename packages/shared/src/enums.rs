@@ -58,6 +58,9 @@ pub enum OperationPermission {
     QueryUserPermissions,
     QueryGroupPermissions,
     QueryDepartmentPermissions,
+    QueryRolePermissions,
+    QueryRoleGroupPermissions,
+    QueryPermissionGroupPermissions,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, EnumString, Display, ToSchema)]

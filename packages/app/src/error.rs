@@ -27,6 +27,7 @@ pub enum AppException {
     DepartmentNotFound,
     UserGroupNotFound,
     RoleGroupNotFound,
+    PermissionNotFound,
     PermissionGroupNotFound,
     GroupCircleDetected,
     DepartmentCircleDetected,

@@ -2,7 +2,7 @@ use app::{
     models::permission::Permission,
     services::permission::{
         create_permission::CreatePermissionParams, delete_permissions::DeletePermissionsParams,
-        query_permissions::FilterPermissionsParams,
+        query_permissions::FilterPermissionsParams, update_permission::UpdatePermissionParams,
     },
 };
 use chrono::{DateTime, Utc};
@@ -52,13 +52,29 @@ impl From<Permission> for PermissionDto {
     }
 }
 
-/// Permission id list
 #[derive(Debug, ToSchema, Deserialize)]
 pub struct DeletePermissionsRequestDto(Vec<Uuid>);
 
 impl From<DeletePermissionsRequestDto> for DeletePermissionsParams {
     fn from(value: DeletePermissionsRequestDto) -> Self {
         Self(value.0)
+    }
+}
+
+#[derive(Debug, ToSchema, Deserialize)]
+pub struct UpdatePermissionRequestDto {
+    pub id: Uuid,
+    pub code: Option<String>,
+    pub description: Option<String>,
+}
+
+impl From<UpdatePermissionRequestDto> for UpdatePermissionParams {
+    fn from(value: UpdatePermissionRequestDto) -> Self {
+        Self {
+            id: value.id,
+            code: value.code,
+            description: value.description,
+        }
     }
 }
 

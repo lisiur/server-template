@@ -40,7 +40,7 @@ impl AuthService {
             return Err(AppException::AuthenticationFailed.into());
         }
 
-        let (_user_permissions, flatten_permissions) = auth_service.query_user_permissions(user.id).await?;
+        let user_permissions = auth_service.query_user_permissions(user.id).await?;
         let roles = role_service.query_roles_by_user_id(user.id).await?;
         let groups = group_service.query_user_groups_by_user_id(user.id).await?;
         let departments = department_service
@@ -54,7 +54,11 @@ impl AuthService {
                 agent: params.agent,
                 expired_at: None,
                 user_id: user.id,
-                permissions: flatten_permissions.into_iter().map(|x| x.code).collect(),
+                permissions: user_permissions
+                    .flatten_permissions()
+                    .into_iter()
+                    .map(|x| x.lock().unwrap().code.clone())
+                    .collect(),
                 roles: roles.into_iter().map(|x| x.id).collect(),
                 groups: groups.into_iter().map(|x| x.id).collect(),
                 departments: departments.into_iter().map(|x| x.id).collect(),
