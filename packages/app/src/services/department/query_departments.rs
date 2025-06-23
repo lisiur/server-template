@@ -1,4 +1,4 @@
-use sea_orm::{Statement, prelude::*};
+use sea_orm::prelude::*;
 use serde::Serialize;
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 use utoipa::ToSchema;
@@ -11,7 +11,7 @@ use crate::{
     models::department::Department,
     result::AppResult,
     services::department::DepartmentService,
-    utils::query::{Cursor, FilterAtom, FilterCondition, PageableQuery, SelectQuery},
+    utils::query::{Cursor, FilterAtom, FilterCondition, PageableQuery, SelectQuery, TreeQuery},
 };
 
 impl DepartmentService {
@@ -50,7 +50,10 @@ impl DepartmentService {
     }
 
     pub async fn query_department_tree(&self, department_id: Uuid) -> AppResult<DepartmentTree> {
-        let departments = self.query_department_tree_models(department_id).await?;
+        let departments = TreeQuery::new(departments::Entity)
+            .query_descendants_with_one(&self.0, department_id)
+            .await?;
+
         if departments.is_empty() {
             return Err(AppException::UserGroupNotFound.into());
         }
@@ -74,70 +77,19 @@ impl DepartmentService {
         Ok(tree)
     }
 
-    pub async fn query_department_chain(&self, department_id: Uuid) -> AppResult<Vec<Department>> {
-        let departments = self.query_department_chain_models(department_id).await?;
+    pub async fn query_department_ancestors(
+        &self,
+        department_id: Uuid,
+    ) -> AppResult<Vec<Department>> {
+        let departments = TreeQuery::new(departments::Entity)
+            .query_ancestors_with_one(&self.0, department_id)
+            .await?;
+
         if departments.is_empty() {
             return Err(AppException::UserGroupNotFound.into());
         }
 
         Ok(departments.into_iter().map(Department::from).collect())
-    }
-
-    pub async fn query_department_tree_models(
-        &self,
-        department_id: Uuid,
-    ) -> AppResult<Vec<departments::Model>> {
-        let departments = departments::Entity::find()
-            .from_raw_sql(Statement::from_sql_and_values(
-                self.0.get_database_backend(),
-                format!(
-                    r#"
-                        WITH RECURSIVE group_tree AS (
-                            SELECT * FROM {table} WHERE {id} = $1
-                            UNION ALL
-                            SELECT g.* FROM {table} g
-                            JOIN group_tree gt ON g.{parent_id} = gt.{id}
-                        )
-                        SELECT * FROM group_tree
-                    "#,
-                    table = entity::departments::Entity.as_str(),
-                    id = entity::departments::Column::Id.as_str(),
-                    parent_id = entity::departments::Column::ParentId.as_str(),
-                ),
-                vec![department_id.into()],
-            ))
-            .all(&self.0)
-            .await?;
-        Ok(departments)
-    }
-
-    pub async fn query_department_chain_models(
-        &self,
-        department_id: Uuid,
-    ) -> AppResult<Vec<departments::Model>> {
-        let departments = departments::Entity::find()
-            .from_raw_sql(Statement::from_sql_and_values(
-                self.0.get_database_backend(),
-                format!(
-                    r#"
-                        WITH RECURSIVE group_chain AS (
-                            SELECT * FROM {table} WHERE {id} = $1
-                            UNION ALL
-                            SELECT g.* FROM {table} g
-                            JOIN group_chain gc ON g.{id} = gc.{parent_id}
-                        )
-                        SELECT * FROM group_chain
-                    "#,
-                    table = entity::departments::Entity.as_str(),
-                    id = entity::departments::Column::Id.as_str(),
-                    parent_id = entity::departments::Column::ParentId.as_str(),
-                ),
-                vec![department_id.into()],
-            ))
-            .all(&self.0)
-            .await?;
-
-        Ok(departments)
     }
 
     pub async fn query_departments_by_user_id(&self, user_id: Uuid) -> AppResult<Vec<Department>> {

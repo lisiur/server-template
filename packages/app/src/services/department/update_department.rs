@@ -23,8 +23,8 @@ impl DepartmentService {
         } = params;
 
         if let Some(parent_id) = parent_id {
-            let department_chains = self.query_department_chain_models(parent_id).await?;
-            if department_chains.iter().find(|x| x.id == id).is_some() {
+            let ancestors = self.query_department_ancestors(parent_id).await?;
+            if ancestors.iter().find(|x| x.id == id).is_some() {
                 // new parent is a child of current department
                 return Err(AppException::DepartmentCircleDetected.into());
             }

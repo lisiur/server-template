@@ -22,7 +22,7 @@ use crate::{
 
 use super::AuthService;
 
-fn distict_permission(permissions: Vec<Arc<Mutex<Permission>>>) -> Vec<Arc<Mutex<Permission>>> {
+fn distinct_permission(permissions: Vec<Arc<Mutex<Permission>>>) -> Vec<Arc<Mutex<Permission>>> {
     let mut permission_map = HashMap::new();
     for permission in permissions {
         let id = permission.lock().unwrap().id;
@@ -47,7 +47,7 @@ impl AssignedPermissionGroupPermissions {
             permissions.extend(child.lock().unwrap().flatten_permissions());
         }
 
-        distict_permission(permissions)
+        distinct_permission(permissions)
     }
 }
 
@@ -67,7 +67,7 @@ impl AssignedRolePermissions {
             permissions.extend(permission_group.lock().unwrap().flatten_permissions());
         }
 
-        distict_permission(permissions)
+        distinct_permission(permissions)
     }
 }
 
@@ -91,7 +91,7 @@ impl AssignedRoleGroupPermissions {
             permissions.extend(child.lock().unwrap().flatten_permissions());
         }
 
-        distict_permission(permissions)
+        distinct_permission(permissions)
     }
 }
 
@@ -126,7 +126,7 @@ impl AssignedUserGroupPermissions {
             permissions.extend(role_group.lock().unwrap().flatten_permissions());
         }
 
-        distict_permission(permissions)
+        distinct_permission(permissions)
     }
 }
 
@@ -156,7 +156,7 @@ impl AssignedDepartmentPermissions {
             permissions.extend(role_group.lock().unwrap().flatten_permissions());
         }
 
-        distict_permission(permissions)
+        distinct_permission(permissions)
     }
 }
 
@@ -196,7 +196,7 @@ impl AssignedUserPermissions {
             permissions.extend(department.lock().unwrap().flatten_permissions());
         }
 
-        distict_permission(permissions)
+        distinct_permission(permissions)
     }
 }
 
@@ -324,7 +324,7 @@ impl AuthService {
             .await?;
 
         departments.into_iter().for_each(|(user_id, departments)| {
-            let departmentd_id_list = departments.iter().map(|x| x.id).collect::<Vec<_>>();
+            let department_id_list = departments.iter().map(|x| x.id).collect::<Vec<_>>();
             departments.into_iter().for_each(|department| {
                 departments_map
                     .entry(department.id)
@@ -342,7 +342,7 @@ impl AuthService {
                 .unwrap()
                 .lock()
                 .unwrap()
-                .departments = departmentd_id_list
+                .departments = department_id_list
                 .into_iter()
                 .map(|department_id| departments_map.get(&department_id).unwrap().clone())
                 .collect();
