@@ -9,14 +9,15 @@ use utoipa::OpenApi;
 use crate::{
     extractors::{
         app_service::AppService,
-        auth_session::{AuthSession, SESSION_ID_KEY},
         helper::Helper,
+        session::{SESSION_ID_KEY, Session},
     },
     init_router,
     response::{ApiResponse, Null, ResponseJson},
     result::ServerResult,
     routes::auth::dto::{
-        LoginRequestDto, LoginResponseDto, QueryDepartmentPermissionsDto, QueryGroupPermissionsDto, QueryPermissionGroupPermissionsDto, QueryUserPermissionsDto, RegisterRequestDto
+        LoginRequestDto, LoginResponseDto, QueryDepartmentPermissionsDto, QueryGroupPermissionsDto,
+        QueryPermissionGroupPermissionsDto, QueryUserPermissionsDto, RegisterRequestDto,
     },
 };
 
@@ -137,7 +138,7 @@ pub async fn login(
 )]
 pub async fn logout(
     Extension(conn): Extension<DatabaseConnection>,
-    auth_session: AuthSession,
+    auth_session: Session,
 ) -> ServerResult<ApiResponse> {
     let auth_service = AuthService::new(conn);
     auth_service.logout(auth_session.session_id).await?;
@@ -164,7 +165,7 @@ pub async fn logout(
     )
 )]
 pub async fn logout_all(
-    auth_session: AuthSession,
+    auth_session: Session,
     auth_service: AppService<AuthService>,
 ) -> ServerResult<ApiResponse> {
     auth_service
@@ -194,7 +195,7 @@ pub async fn logout_all(
     )
 )]
 pub async fn assign_user_permissions(
-    session: AuthSession,
+    session: Session,
     auth_service: AppService<AuthService>,
     Json(params): Json<AssignUserPermissionsDto>,
 ) -> ServerResult<ApiResponse> {
@@ -217,7 +218,7 @@ pub async fn assign_user_permissions(
     )
 )]
 pub async fn query_user_permissions(
-    session: AuthSession,
+    session: Session,
     auth_service: AppService<AuthService>,
     Query(query): Query<QueryUserPermissionsDto>,
 ) -> ServerResult<ApiResponse> {
@@ -240,7 +241,7 @@ pub async fn query_user_permissions(
     )
 )]
 pub async fn query_user_group_permissions(
-    session: AuthSession,
+    session: Session,
     auth_service: AppService<AuthService>,
     Query(query): Query<QueryGroupPermissionsDto>,
 ) -> ServerResult<ApiResponse> {
@@ -265,7 +266,7 @@ pub async fn query_user_group_permissions(
     )
 )]
 pub async fn query_department_permissions(
-    session: AuthSession,
+    session: Session,
     auth_service: AppService<AuthService>,
     Query(query): Query<QueryDepartmentPermissionsDto>,
 ) -> ServerResult<ApiResponse> {
@@ -290,15 +291,13 @@ pub async fn query_department_permissions(
     )
 )]
 pub async fn query_role_permissions(
-    session: AuthSession,
+    session: Session,
     auth_service: AppService<AuthService>,
     Query(query): Query<QueryRolePermissionsDto>,
 ) -> ServerResult<ApiResponse> {
     session.assert_has_permission(OperationPermission::QueryRolePermissions)?;
 
-    let res = auth_service
-        .query_role_permissions(query.role_id)
-        .await?;
+    let res = auth_service.query_role_permissions(query.role_id).await?;
 
     Ok(ApiResponse::json(res))
 }
@@ -315,7 +314,7 @@ pub async fn query_role_permissions(
     )
 )]
 pub async fn query_role_group_permissions(
-    session: AuthSession,
+    session: Session,
     auth_service: AppService<AuthService>,
     Query(query): Query<QueryRoleGroupPermissionsDto>,
 ) -> ServerResult<ApiResponse> {
@@ -340,7 +339,7 @@ pub async fn query_role_group_permissions(
     )
 )]
 pub async fn query_permission_group_permissions(
-    session: AuthSession,
+    session: Session,
     auth_service: AppService<AuthService>,
     Query(query): Query<QueryPermissionGroupPermissionsDto>,
 ) -> ServerResult<ApiResponse> {

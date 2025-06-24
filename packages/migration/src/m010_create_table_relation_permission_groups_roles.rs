@@ -1,8 +1,8 @@
 use sea_orm_migration::{prelude::*, schema::*};
 
 use crate::{
-    m002_create_table_permission_groups::PermissionGroups,
-    m002_create_table_user_groups::UserGroups, table_manager::TableManager,
+    m003_create_table_permission_groups::PermissionGroups, m006_create_table_roles::Roles,
+    table_manager::TableManager,
 };
 
 #[derive(DeriveMigrationName)]
@@ -11,28 +11,28 @@ pub struct Migration;
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        TableManager::new(manager, RelationPermissionGroupsUserGroups::Table)
+        TableManager::new(manager, RelationPermissionGroupsRoles::Table)
             .primary_key(vec![
-                RelationPermissionGroupsUserGroups::PermissionGroupId,
-                RelationPermissionGroupsUserGroups::UserGroupId,
+                RelationPermissionGroupsRoles::PermissionGroupId,
+                RelationPermissionGroupsRoles::RoleId,
             ])
             .create_table(
                 Table::create()
-                    .col(uuid(RelationPermissionGroupsUserGroups::PermissionGroupId))
-                    .col(uuid(RelationPermissionGroupsUserGroups::UserGroupId))
+                    .col(uuid(RelationPermissionGroupsRoles::PermissionGroupId))
+                    .col(uuid(RelationPermissionGroupsRoles::RoleId))
                     .to_owned(),
             )
             .await?
             .create_foreign_key(
-                RelationPermissionGroupsUserGroups::PermissionGroupId,
+                RelationPermissionGroupsRoles::PermissionGroupId,
                 PermissionGroups::Table,
                 PermissionGroups::Id,
             )
             .await?
             .create_foreign_key(
-                RelationPermissionGroupsUserGroups::UserGroupId,
-                UserGroups::Table,
-                UserGroups::Id,
+                RelationPermissionGroupsRoles::RoleId,
+                Roles::Table,
+                Roles::Id,
             )
             .await?;
 
@@ -40,7 +40,7 @@ impl MigrationTrait for Migration {
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        TableManager::new(manager, RelationPermissionGroupsUserGroups::Table)
+        TableManager::new(manager, RelationPermissionGroupsRoles::Table)
             .drop_table()
             .await?;
 
@@ -49,8 +49,8 @@ impl MigrationTrait for Migration {
 }
 
 #[derive(DeriveIden)]
-enum RelationPermissionGroupsUserGroups {
+enum RelationPermissionGroupsRoles {
     Table,
     PermissionGroupId,
-    UserGroupId,
+    RoleId,
 }

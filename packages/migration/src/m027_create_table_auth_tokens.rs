@@ -19,10 +19,7 @@ impl MigrationTrait for Migration {
                     .col(string_null(AuthTokens::Agent))
                     .col(string_null(AuthTokens::Platform))
                     .col(string(AuthTokens::Payload))
-                    .col(
-                        timestamp_with_time_zone_null(AuthTokens::ExpiredAt)
-                            .default(Expr::current_timestamp()),
-                    )
+                    .col(timestamp_with_time_zone_null(AuthTokens::ExpiredAt))
                     .to_owned(),
             )
             .await?

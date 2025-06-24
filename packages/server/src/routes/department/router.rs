@@ -6,7 +6,7 @@ use utoipa::OpenApi;
 
 use crate::{
     dto::PaginatedQueryDto,
-    extractors::{app_service::AppService, auth_session::AuthSession},
+    extractors::{app_service::AppService, session::Session},
     init_router,
     response::{ApiResponse, Null, PaginatedData, ResponseJson},
     result::ServerResult,
@@ -44,7 +44,7 @@ init_router!(
     )
 )]
 pub async fn query_departments_by_page(
-    session: AuthSession,
+    session: Session,
     department_service: AppService<DepartmentService>,
     Query(query): Query<PaginatedQuery<FilterDepartmentsDto>>,
 ) -> ServerResult<ApiResponse> {
@@ -71,7 +71,7 @@ pub async fn query_departments_by_page(
     )
 )]
 pub async fn create_department(
-    session: AuthSession,
+    session: Session,
     Extension(conn): Extension<DatabaseConnection>,
     Json(params): Json<CreateDepartmentRequestDto>,
 ) -> ServerResult<ApiResponse> {
@@ -96,7 +96,7 @@ pub async fn create_department(
     )
 )]
 pub async fn delete_departments(
-    session: AuthSession,
+    session: Session,
     Extension(conn): Extension<DatabaseConnection>,
     Json(params): Json<DeleteDepartmentsRequestDto>,
 ) -> ServerResult<ApiResponse> {
@@ -119,7 +119,7 @@ pub async fn delete_departments(
     )
 )]
 pub async fn update_department(
-    session: AuthSession,
+    session: Session,
     Extension(conn): Extension<DatabaseConnection>,
     Json(params): Json<UpdateDepartmentRequestDto>,
 ) -> ServerResult<ApiResponse> {

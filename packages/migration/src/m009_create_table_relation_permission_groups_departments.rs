@@ -2,7 +2,7 @@ use sea_orm_migration::{prelude::*, schema::*};
 
 use crate::{
     m002_create_table_departments::Departments,
-    m002_create_table_permission_groups::PermissionGroups, table_manager::TableManager,
+    m003_create_table_permission_groups::PermissionGroups, table_manager::TableManager,
 };
 
 #[derive(DeriveMigrationName)]

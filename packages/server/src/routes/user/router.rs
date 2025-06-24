@@ -8,7 +8,7 @@ use utoipa::OpenApi;
 
 use crate::{
     dto::PaginatedQueryDto,
-    extractors::{app_service::AppService, auth_session::AuthSession, helper::Helper},
+    extractors::{app_service::AppService, helper::Helper, session::Session},
     init_router,
     response::{ApiResponse, PaginatedData, ResponseJson, ResponseJsonNull},
     result::ServerResult,
@@ -32,7 +32,7 @@ init_router!(query_users, create_user, query_users_by_page, delete_users);
     )
 )]
 pub async fn query_users(
-    session: AuthSession,
+    session: Session,
     user_service: AppService<UserService>,
 ) -> ServerResult<ApiResponse> {
     session.assert_has_permission(OperationPermission::QueryUsers)?;
@@ -54,7 +54,7 @@ pub async fn query_users(
     )
 )]
 pub async fn query_users_by_page(
-    session: AuthSession,
+    session: Session,
     user_service: AppService<UserService>,
     Query(query): Query<PaginatedQuery<FilterUserDto>>,
 ) -> ServerResult<ApiResponse> {
@@ -77,7 +77,7 @@ pub async fn query_users_by_page(
     )
 )]
 pub async fn create_user(
-    session: AuthSession,
+    session: Session,
     util: Helper,
     user_service: AppService<UserService>,
     Json(params): Json<CreateUserDto>,
@@ -107,7 +107,7 @@ pub async fn create_user(
     )
 )]
 pub async fn delete_users(
-    session: AuthSession,
+    session: Session,
     user_service: AppService<UserService>,
     Json(params): Json<DeleteUsersRequestDto>,
 ) -> ServerResult<ApiResponse> {

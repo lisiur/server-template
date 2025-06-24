@@ -1,7 +1,7 @@
 use sea_orm_migration::{prelude::*, schema::*};
 
 use crate::{
-    m002_create_table_roles::Roles, m002_create_table_user_groups::UserGroups,
+    m006_create_table_roles::Roles, m007_create_table_user_groups::UserGroups,
     table_manager::TableManager,
 };
 

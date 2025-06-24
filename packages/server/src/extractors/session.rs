@@ -12,12 +12,12 @@ use crate::{error::ServerExceptionCode, result::ServerResult};
 pub const SESSION_ID_KEY: &str = "id";
 
 #[derive(Debug)]
-pub struct AuthSession {
+pub struct Session {
     pub session_id: Uuid,
     pub payload: SessionTokenPayload,
 }
 
-impl AuthSession {
+impl Session {
     #[allow(unused)]
     pub fn has_permission(&self, permission_code: impl ToString) -> bool {
         let permission_code = permission_code.to_string();
@@ -82,7 +82,7 @@ impl AuthSession {
     }
 }
 
-impl<S> FromRequestParts<S> for AuthSession
+impl<S> FromRequestParts<S> for Session
 where
     S: Send + Sync,
 {
@@ -108,7 +108,7 @@ where
 
         let payload = serde_json::from_str::<SessionTokenPayload>(&auth_token.payload).unwrap();
 
-        Ok(AuthSession {
+        Ok(Session {
             session_id,
             payload,
         })

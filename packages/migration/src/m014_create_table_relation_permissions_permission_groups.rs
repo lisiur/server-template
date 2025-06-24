@@ -1,8 +1,8 @@
 use sea_orm_migration::{prelude::*, schema::*};
 
 use crate::{
-    m002_create_table_permission_groups::PermissionGroups,
-    m002_create_table_permissions::Permissions, table_manager::TableManager,
+    m003_create_table_permission_groups::PermissionGroups,
+    m004_create_table_permissions::Permissions, table_manager::TableManager,
 };
 
 #[derive(DeriveMigrationName)]

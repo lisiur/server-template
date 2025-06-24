@@ -5,7 +5,7 @@ use utoipa::OpenApi;
 
 use crate::{
     error::ServerExceptionCode,
-    extractors::{app_service::AppService, auth_session::AuthSession},
+    extractors::{app_service::AppService, session::Session},
     init_router,
     response::{ApiResponse, Null, ResponseJson},
     result::ServerResult,
@@ -39,7 +39,7 @@ init_router!(
 /// Query session
 pub async fn query_session(
     Extension(conn): Extension<DatabaseConnection>,
-    auth_session: AuthSession,
+    auth_session: Session,
 ) -> ServerResult<ApiResponse> {
     let user_service = UserService::new(conn);
     let user_id = auth_session.payload.user_id;
@@ -60,7 +60,7 @@ pub async fn query_session(
 )]
 /// Query session Permissions
 pub async fn query_session_permissions(
-    auth_session: AuthSession,
+    auth_session: Session,
     auth_service: AppService<AuthService>,
 ) -> ServerResult<ApiResponse> {
     let user_id = auth_session.payload.user_id;
@@ -78,7 +78,7 @@ pub async fn query_session_permissions(
 /// Query active sessions
 pub async fn query_active_sessions(
     Extension(conn): Extension<DatabaseConnection>,
-    auth_session: AuthSession,
+    auth_session: Session,
 ) -> ServerResult<ApiResponse> {
     let user_id = auth_session.payload.user_id;
     let auth_token_service = AuthTokenService::new(conn);
@@ -108,7 +108,7 @@ pub async fn query_active_sessions(
 )]
 /// Delete session
 pub async fn delete_session(
-    auth_session: AuthSession,
+    auth_session: Session,
     Extension(conn): Extension<DatabaseConnection>,
     Query(query): Query<DeleteSessionDto>,
 ) -> ServerResult<impl IntoResponse> {

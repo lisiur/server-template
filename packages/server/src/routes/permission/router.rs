@@ -6,7 +6,7 @@ use utoipa::OpenApi;
 
 use crate::{
     dto::PaginatedQueryDto,
-    extractors::auth_session::AuthSession,
+    extractors::session::Session,
     init_router,
     response::{ApiResponse, Null, PaginatedData, ResponseJson, ResponseJsonNull},
     result::ServerResult,
@@ -44,7 +44,7 @@ init_router!(
     )
 )]
 pub async fn query_permissions_by_page(
-    session: AuthSession,
+    session: Session,
     Extension(conn): Extension<DatabaseConnection>,
     Query(query): Query<PaginatedQuery<FilterPermissionsDto>>,
 ) -> ServerResult<ApiResponse> {
@@ -74,7 +74,7 @@ pub async fn query_permissions_by_page(
     )
 )]
 pub async fn create_permission(
-    session: AuthSession,
+    session: Session,
     Extension(conn): Extension<DatabaseConnection>,
     Json(params): Json<CreatePermissionDto>,
 ) -> ServerResult<ApiResponse> {
@@ -99,7 +99,7 @@ pub async fn create_permission(
     )
 )]
 pub async fn delete_permissions(
-    session: AuthSession,
+    session: Session,
     Extension(conn): Extension<DatabaseConnection>,
     Json(params): Json<DeletePermissionsRequestDto>,
 ) -> ServerResult<ApiResponse> {
@@ -124,7 +124,7 @@ pub async fn delete_permissions(
     )
 )]
 pub async fn update_permission(
-    session: AuthSession,
+    session: Session,
     Extension(conn): Extension<DatabaseConnection>,
     Json(params): Json<UpdatePermissionRequestDto>,
 ) -> ServerResult<ApiResponse> {

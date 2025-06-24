@@ -1,7 +1,7 @@
 use sea_orm_migration::{prelude::*, schema::*};
 
 use crate::{
-    m002_create_table_departments::Departments, m002_create_table_role_groups::RoleGroups,
+    m002_create_table_departments::Departments, m008_create_table_users::Users,
     table_manager::TableManager,
 };
 
@@ -11,26 +11,22 @@ pub struct Migration;
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        TableManager::new(manager, RelationRoleGroupsDepartments::Table)
+        TableManager::new(manager, RelationUsersDepartments::Table)
             .primary_key(vec![
-                RelationRoleGroupsDepartments::RoleGroupId,
-                RelationRoleGroupsDepartments::DepartmentId,
+                RelationUsersDepartments::UserId,
+                RelationUsersDepartments::DepartmentId,
             ])
             .create_table(
                 Table::create()
-                    .col(uuid(RelationRoleGroupsDepartments::RoleGroupId))
-                    .col(uuid(RelationRoleGroupsDepartments::DepartmentId))
+                    .col(uuid(RelationUsersDepartments::UserId))
+                    .col(uuid(RelationUsersDepartments::DepartmentId))
                     .to_owned(),
             )
             .await?
-            .create_foreign_key(
-                RelationRoleGroupsDepartments::RoleGroupId,
-                RoleGroups::Table,
-                RoleGroups::Id,
-            )
+            .create_foreign_key(RelationUsersDepartments::UserId, Users::Table, Users::Id)
             .await?
             .create_foreign_key(
-                RelationRoleGroupsDepartments::DepartmentId,
+                RelationUsersDepartments::DepartmentId,
                 Departments::Table,
                 Departments::Id,
             )
@@ -40,7 +36,7 @@ impl MigrationTrait for Migration {
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        TableManager::new(manager, RelationRoleGroupsDepartments::Table)
+        TableManager::new(manager, RelationUsersDepartments::Table)
             .drop_table()
             .await?;
 
@@ -49,8 +45,8 @@ impl MigrationTrait for Migration {
 }
 
 #[derive(DeriveIden)]
-enum RelationRoleGroupsDepartments {
+enum RelationUsersDepartments {
     Table,
-    RoleGroupId,
+    UserId,
     DepartmentId,
 }

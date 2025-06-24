@@ -1,7 +1,7 @@
 use sea_orm_migration::{prelude::*, schema::*};
 
 use crate::{
-    m002_create_table_departments::Departments, m002_create_table_roles::Roles,
+    m005_create_table_role_groups::RoleGroups, m006_create_table_roles::Roles,
     table_manager::TableManager,
 };
 
@@ -11,24 +11,24 @@ pub struct Migration;
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        TableManager::new(manager, RelationRolesDepartments::Table)
+        TableManager::new(manager, RelationRolesRoleGroups::Table)
             .primary_key(vec![
-                RelationRolesDepartments::RoleId,
-                RelationRolesDepartments::DepartmentId,
+                RelationRolesRoleGroups::RoleId,
+                RelationRolesRoleGroups::RoleGroupId,
             ])
             .create_table(
                 Table::create()
-                    .col(uuid(RelationRolesDepartments::RoleId))
-                    .col(uuid(RelationRolesDepartments::DepartmentId))
+                    .col(uuid(RelationRolesRoleGroups::RoleId))
+                    .col(uuid(RelationRolesRoleGroups::RoleGroupId))
                     .to_owned(),
             )
             .await?
-            .create_foreign_key(RelationRolesDepartments::RoleId, Roles::Table, Roles::Id)
+            .create_foreign_key(RelationRolesRoleGroups::RoleId, Roles::Table, Roles::Id)
             .await?
             .create_foreign_key(
-                RelationRolesDepartments::DepartmentId,
-                Departments::Table,
-                Departments::Id,
+                RelationRolesRoleGroups::RoleGroupId,
+                RoleGroups::Table,
+                RoleGroups::Id,
             )
             .await?;
 
@@ -36,7 +36,7 @@ impl MigrationTrait for Migration {
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        TableManager::new(manager, RelationRolesDepartments::Table)
+        TableManager::new(manager, RelationRolesRoleGroups::Table)
             .drop_table()
             .await?;
 
@@ -45,8 +45,8 @@ impl MigrationTrait for Migration {
 }
 
 #[derive(DeriveIden)]
-enum RelationRolesDepartments {
+enum RelationRolesRoleGroups {
     Table,
     RoleId,
-    DepartmentId,
+    RoleGroupId,
 }

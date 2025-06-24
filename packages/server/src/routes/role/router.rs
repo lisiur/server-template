@@ -6,7 +6,7 @@ use utoipa::OpenApi;
 
 use crate::{
     dto::PaginatedQueryDto,
-    extractors::auth_session::AuthSession,
+    extractors::session::Session,
     init_router,
     response::{ApiResponse, Null, PaginatedData, ResponseJson, ResponseJsonNull},
     result::ServerResult,
@@ -35,7 +35,7 @@ init_router!(query_roles_by_page, create_role, delete_roles, update_role);
     )
 )]
 pub async fn query_roles_by_page(
-    session: AuthSession,
+    session: Session,
     Extension(conn): Extension<DatabaseConnection>,
     Query(query): Query<PaginatedQuery<RoleFilterDto>>,
 ) -> ServerResult<ApiResponse> {
@@ -61,7 +61,7 @@ pub async fn query_roles_by_page(
     )
 )]
 pub async fn create_role(
-    session: AuthSession,
+    session: Session,
     Extension(conn): Extension<DatabaseConnection>,
     Json(params): Json<CreateRoleRequestDto>,
 ) -> ServerResult<ApiResponse> {
@@ -86,7 +86,7 @@ pub async fn create_role(
     )
 )]
 pub async fn delete_roles(
-    session: AuthSession,
+    session: Session,
     Extension(conn): Extension<DatabaseConnection>,
     Json(params): Json<DeleteRolesRequestDto>,
 ) -> ServerResult<ApiResponse> {
@@ -111,7 +111,7 @@ pub async fn delete_roles(
     )
 )]
 pub async fn update_role(
-    session: AuthSession,
+    session: Session,
     Extension(conn): Extension<DatabaseConnection>,
     Json(params): Json<UpdateRoleRequestDto>,
 ) -> ServerResult<ApiResponse> {

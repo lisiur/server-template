@@ -9,11 +9,13 @@ use utoipa::OpenApi;
 
 use crate::{
     dto::PaginatedQueryDto,
-    extractors::auth_session::AuthSession,
+    extractors::session::Session,
     init_router,
     response::{ApiResponse, Null, PaginatedData, ResponseJson},
     result::ServerResult,
-    routes::user_group::dto::{CreateGroupResponseDto, DeleteGroupsRequestDto, UpdateGroupRequestDto},
+    routes::user_group::dto::{
+        CreateGroupResponseDto, DeleteGroupsRequestDto, UpdateGroupRequestDto,
+    },
 };
 
 use super::dto::{CreateGroupRequestDto, FilterGroupsDto, GroupDto};
@@ -40,7 +42,7 @@ init_router!(
     )
 )]
 pub async fn query_groups_by_page(
-    session: AuthSession,
+    session: Session,
     Extension(conn): Extension<DatabaseConnection>,
     Query(query): Query<PaginatedQuery<FilterGroupsDto>>,
 ) -> ServerResult<ApiResponse> {
@@ -66,7 +68,7 @@ pub async fn query_groups_by_page(
     )
 )]
 pub async fn create_group(
-    session: AuthSession,
+    session: Session,
     Extension(conn): Extension<DatabaseConnection>,
     Json(params): Json<CreateGroupRequestDto>,
 ) -> ServerResult<ApiResponse> {
@@ -98,7 +100,7 @@ pub async fn create_group(
     )
 )]
 pub async fn delete_groups(
-    session: AuthSession,
+    session: Session,
     Extension(conn): Extension<DatabaseConnection>,
     Json(params): Json<DeleteGroupsRequestDto>,
 ) -> ServerResult<ApiResponse> {
@@ -121,7 +123,7 @@ pub async fn delete_groups(
     )
 )]
 pub async fn update_group(
-    session: AuthSession,
+    session: Session,
     Extension(conn): Extension<DatabaseConnection>,
     Json(params): Json<UpdateGroupRequestDto>,
 ) -> ServerResult<ApiResponse> {
