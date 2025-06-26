@@ -223,13 +223,13 @@ pub enum PermissionTreeEntry {
 
 impl AuthService {
     async fn query_permission_tree(&self, entry: PermissionTreeEntry) -> AppResult<PermissionTree> {
-        let user_service = UserService::new(self.0.clone());
-        let permission_service = PermissionService::new(self.0.clone());
-        let role_service = RoleService::new(self.0.clone());
-        let user_group_service = UserGroupService::new(self.0.clone());
-        let department_service = DepartmentService::new(self.0.clone());
-        let role_group_service = RoleGroupService::new(self.0.clone());
-        let permission_group_service = PermissionGroupService::new(self.0.clone());
+        let user_service = UserService::new(self.conn.clone());
+        let permission_service = PermissionService::new(self.conn.clone());
+        let role_service = RoleService::new(self.conn.clone());
+        let user_group_service = UserGroupService::new(self.conn.clone());
+        let department_service = DepartmentService::new(self.conn.clone());
+        let role_group_service = RoleGroupService::new(self.conn.clone());
+        let permission_group_service = PermissionGroupService::new(self.conn.clone());
 
         let mut users_map = HashMap::<Uuid, Arc<Mutex<AssignedUserPermissions>>>::new();
         let mut permissions_map = HashMap::<Uuid, Arc<Mutex<Permission>>>::new();

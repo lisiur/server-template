@@ -14,7 +14,7 @@ pub struct UpdateGroupParams {
 }
 
 impl UserGroupService {
-    pub async fn update_group(&self, params: UpdateGroupParams) -> AppResult<()> {
+    pub async fn update_user_group(&self, params: UpdateGroupParams) -> AppResult<()> {
         let UpdateGroupParams {
             id,
             name,
@@ -30,7 +30,7 @@ impl UserGroupService {
             }
         }
 
-        let model = user_groups::Entity::find_by_id(id).one(&self.0).await?;
+        let model = user_groups::Entity::find_by_id(id).one(&self.conn).await?;
         let Some(model) = model else {
             return Err(AppException::UserGroupNotFound.into());
         };
@@ -50,7 +50,7 @@ impl UserGroupService {
             active_model.description = Set(Some(description));
         }
 
-        active_model.update(&self.0).await?;
+        self.crud.update(active_model).await?;
 
         Ok(())
     }

@@ -1,13 +1,13 @@
 use app::{
     models::user_group::UserGroup,
     services::user_group::{
-        delete_user_groups::DeleteGroupsParams, query_user_groups::FilterGroupsParams,
+        delete_user_group::DeleteGroupsParams, query_user_group::UserGroupsFilterParams,
         update_user_group::UpdateGroupParams,
     },
 };
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use utoipa::{IntoParams, ToSchema};
+use utoipa::ToSchema;
 use uuid::Uuid;
 
 #[derive(Debug, ToSchema, Deserialize)]
@@ -46,15 +46,16 @@ impl From<UserGroup> for GroupDto {
 }
 
 /// Group filter params
-#[derive(Debug, Clone, Deserialize, IntoParams)]
-#[into_params(parameter_in = Query)]
+#[derive(Debug, Clone, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+#[schema(rename_all = "camelCase")]
 pub struct FilterGroupsDto {
     pub name: Option<String>,
 }
 
-impl From<FilterGroupsDto> for FilterGroupsParams {
+impl From<FilterGroupsDto> for UserGroupsFilterParams {
     fn from(value: FilterGroupsDto) -> Self {
-        FilterGroupsParams { name: value.name }
+        UserGroupsFilterParams { name: value.name }
     }
 }
 
@@ -64,7 +65,7 @@ pub struct DeleteGroupsRequestDto(Vec<Uuid>);
 
 impl From<DeleteGroupsRequestDto> for DeleteGroupsParams {
     fn from(value: DeleteGroupsRequestDto) -> Self {
-        Self(value.0)
+        DeleteGroupsParams(value.0)
     }
 }
 

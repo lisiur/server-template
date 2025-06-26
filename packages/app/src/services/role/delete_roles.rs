@@ -13,7 +13,7 @@ impl RoleService {
     pub async fn delete_roles(&self, params: DeleteRolesParams) -> AppResult<()> {
         roles::Entity::delete_many()
             .filter(roles::Column::Id.is_in(params.0))
-            .exec(&self.0)
+            .exec(&self.conn)
             .await?;
 
         Ok(())

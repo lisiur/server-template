@@ -30,7 +30,7 @@ impl DepartmentService {
             }
         }
 
-        let model = departments::Entity::find_by_id(id).one(&self.0).await?;
+        let model = departments::Entity::find_by_id(id).one(&self.conn).await?;
         let Some(model) = model else {
             return Err(AppException::DepartmentNotFound.into());
         };
@@ -50,7 +50,7 @@ impl DepartmentService {
             active_model.description = Set(Some(description));
         }
 
-        active_model.update(&self.0).await?;
+        active_model.update(&self.conn).await?;
 
         Ok(())
     }

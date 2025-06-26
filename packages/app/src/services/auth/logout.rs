@@ -7,7 +7,7 @@ use crate::{
 
 impl AuthService {
     pub async fn logout(&self, session_id: Uuid) -> AppResult<()> {
-        let auth_token_service = AuthTokenService::new(self.0.clone());
+        let auth_token_service = AuthTokenService::new(self.conn.clone());
         auth_token_service
             .delete_auth_token_by_id(session_id)
             .await?;
@@ -16,7 +16,7 @@ impl AuthService {
     }
 
     pub async fn logout_all(&self, user_id: Uuid) -> AppResult<()> {
-        let auth_token_service = AuthTokenService::new(self.0.clone());
+        let auth_token_service = AuthTokenService::new(self.conn.clone());
         auth_token_service
             .delete_auth_token_by_ref_id(user_id)
             .await?;

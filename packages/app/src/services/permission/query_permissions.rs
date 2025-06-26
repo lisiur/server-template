@@ -1,37 +1,32 @@
 use std::collections::HashMap;
 
 use entity::{
-    permissions, relation_permissions_departments, relation_permissions_permission_groups, relation_permissions_roles, relation_permissions_user_groups, relation_permissions_users
+    permissions, relation_permissions_departments, relation_permissions_permission_groups,
+    relation_permissions_roles, relation_permissions_user_groups, relation_permissions_users,
 };
-use sea_orm::prelude::*;
+use sea_orm::{Condition, prelude::*};
 use uuid::Uuid;
 
-use crate::{
-    models::permission::Permission,
-    result::AppResult,
-    utils::query::{FilterAtom, FilterCondition, PageableQuery, SelectQuery},
-};
+use crate::{models::permission::Permission, result::AppResult, utils::query::PageableQuery};
 
 use super::PermissionService;
 
+pub struct FilterPermissionsParams {
+    pub kind: Option<String>,
+}
+
+impl From<FilterPermissionsParams> for Condition {
+    fn from(value: FilterPermissionsParams) -> Self {
+        Condition::all().add_option(value.kind.map(|kind| permissions::Column::Kind.like(kind)))
+    }
+}
+
 impl PermissionService {
-    pub async fn query_permissions_by_page<T: PageableQuery<FilterPermissionsParams>>(
+    pub async fn query_permissions_by_page(
         &self,
-        params: T,
+        params: PageableQuery<FilterPermissionsParams>,
     ) -> AppResult<(Vec<Permission>, i64)> {
-        let mut select_query = SelectQuery::default().with_cursor(params.cursor());
-        let filter = params.into_filter();
-        if let Some(ref kind) = filter.kind {
-            if !kind.is_empty() {
-                select_query.add_atom_filter(FilterAtom {
-                    field: permissions::Column::Kind.as_str().to_string(),
-                    condition: FilterCondition::Like(format!("%{kind}%")),
-                });
-            }
-        }
-        let (records, count) = select_query
-            .all_with_count::<permissions::Model>(permissions::Entity, &self.0)
-            .await?;
+        let (records, count) = self.crud.find_by_condition_with_count(params).await?;
 
         let records = records.into_iter().map(Permission::from).collect();
 
@@ -42,7 +37,7 @@ impl PermissionService {
         let permissions = permissions::Entity::find()
             .inner_join(relation_permissions_users::Entity)
             .filter(relation_permissions_users::Column::UserId.eq(user_id))
-            .all(&self.0)
+            .all(&self.conn)
             .await?;
 
         Ok(permissions.into_iter().map(Permission::from).collect())
@@ -58,7 +53,7 @@ impl PermissionService {
         let results = permissions::Entity::find()
             .find_also_related(relation_permissions_users::Entity)
             .filter(relation_permissions_users::Column::UserId.is_in(user_id_list))
-            .all(&self.0)
+            .all(&self.conn)
             .await?;
 
         let mut map = HashMap::new();
@@ -76,7 +71,7 @@ impl PermissionService {
         let permissions = permissions::Entity::find()
             .inner_join(relation_permissions_roles::Entity)
             .filter(relation_permissions_roles::Column::RoleId.eq(role_id))
-            .all(&self.0)
+            .all(&self.conn)
             .await?;
 
         Ok(permissions.into_iter().map(Permission::from).collect())
@@ -92,7 +87,7 @@ impl PermissionService {
         let results = permissions::Entity::find()
             .find_also_related(relation_permissions_roles::Entity)
             .filter(relation_permissions_roles::Column::RoleId.is_in(role_id_list))
-            .all(&self.0)
+            .all(&self.conn)
             .await?;
 
         let mut map = HashMap::new();
@@ -113,7 +108,7 @@ impl PermissionService {
         let permissions = permissions::Entity::find()
             .inner_join(relation_permissions_user_groups::Entity)
             .filter(relation_permissions_user_groups::Column::UserGroupId.eq(group_id))
-            .all(&self.0)
+            .all(&self.conn)
             .await?;
 
         Ok(permissions.into_iter().map(Permission::from).collect())
@@ -126,7 +121,7 @@ impl PermissionService {
         let results = permissions::Entity::find()
             .find_also_related(relation_permissions_user_groups::Entity)
             .filter(relation_permissions_user_groups::Column::UserGroupId.is_in(groups_id_list))
-            .all(&self.0)
+            .all(&self.conn)
             .await?;
 
         let mut map = HashMap::new();
@@ -147,7 +142,7 @@ impl PermissionService {
         let permissions = permissions::Entity::find()
             .inner_join(relation_permissions_departments::Entity)
             .filter(relation_permissions_departments::Column::DepartmentId.eq(department_id))
-            .all(&self.0)
+            .all(&self.conn)
             .await?;
 
         Ok(permissions.into_iter().map(Permission::from).collect())
@@ -162,7 +157,7 @@ impl PermissionService {
             .filter(
                 relation_permissions_departments::Column::DepartmentId.is_in(departments_id_list),
             )
-            .all(&self.0)
+            .all(&self.conn)
             .await?;
 
         let mut map = HashMap::new();
@@ -183,9 +178,10 @@ impl PermissionService {
         let results = permissions::Entity::find()
             .find_also_related(relation_permissions_permission_groups::Entity)
             .filter(
-                relation_permissions_permission_groups::Column::PermissionGroupId.is_in(permission_group_id_list),
+                relation_permissions_permission_groups::Column::PermissionGroupId
+                    .is_in(permission_group_id_list),
             )
-            .all(&self.0)
+            .all(&self.conn)
             .await?;
 
         let mut map = HashMap::new();
@@ -198,8 +194,4 @@ impl PermissionService {
 
         Ok(map)
     }
-}
-
-pub struct FilterPermissionsParams {
-    pub kind: Option<String>,
 }

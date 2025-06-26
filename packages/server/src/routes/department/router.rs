@@ -1,11 +1,11 @@
-use app::{services::department::DepartmentService, utils::query::PaginatedQuery};
-use axum::{Extension, Json, extract::Query};
+use app::{services::department::DepartmentService, utils::query::DisableOrder};
+use axum::{Extension, Json};
 use sea_orm::DatabaseConnection;
 use shared::enums::OperationPermission;
 use utoipa::OpenApi;
 
 use crate::{
-    dto::PaginatedQueryDto,
+    dto::PageableQueryDto,
     extractors::{app_service::AppService, session::Session},
     init_router,
     response::{ApiResponse, Null, PaginatedData, ResponseJson},
@@ -36,9 +36,9 @@ init_router!(
 #[utoipa::path(
     operation_id = "queryDepartmentsByPage",
     description = "Query departments by page",
-    get,
+    post,
     path = "/queryDepartmentsByPage",
-    params(PaginatedQueryDto, FilterDepartmentsDto),
+    request_body = PageableQueryDto<FilterDepartmentsDto, DisableOrder>,
     responses(
         (status = OK, description = "ok", body = ResponseJson<PaginatedData<DepartmentDto>>)
     )
@@ -46,11 +46,13 @@ init_router!(
 pub async fn query_departments_by_page(
     session: Session,
     department_service: AppService<DepartmentService>,
-    Query(query): Query<PaginatedQuery<FilterDepartmentsDto>>,
+    Json(params): Json<PageableQueryDto<FilterDepartmentsDto, DisableOrder>>,
 ) -> ServerResult<ApiResponse> {
     session.assert_has_permission(OperationPermission::QueryDepartments)?;
 
-    let (records, total) = department_service.query_departments_by_page(query).await?;
+    let (records, total) = department_service
+        .query_departments_by_page(params.into())
+        .await?;
     let records = records
         .into_iter()
         .map(DepartmentDto::from)

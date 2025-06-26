@@ -1,11 +1,11 @@
-use app::{services::role::RoleService, utils::query::PaginatedQuery};
-use axum::{Extension, Json, extract::Query};
+use app::services::role::RoleService;
+use axum::{Extension, Json};
 use sea_orm::DatabaseConnection;
 use shared::enums::OperationPermission;
 use utoipa::OpenApi;
 
 use crate::{
-    dto::PaginatedQueryDto,
+    dto::PageableQueryDto,
     extractors::session::Session,
     init_router,
     response::{ApiResponse, Null, PaginatedData, ResponseJson, ResponseJsonNull},
@@ -27,9 +27,9 @@ init_router!(query_roles_by_page, create_role, delete_roles, update_role);
 #[utoipa::path(
     operation_id = "queryRolesByPage",
     description = "Query roles by page",
-    get,
+    post,
     path = "/queryRolesByPage",
-    params(PaginatedQueryDto, RoleFilterDto),
+    request_body = PageableQueryDto<RoleFilterDto>,
     responses(
         (status = OK, description = "ok", body = ResponseJson<PaginatedData<RoleDto>>)
     )
@@ -37,13 +37,13 @@ init_router!(query_roles_by_page, create_role, delete_roles, update_role);
 pub async fn query_roles_by_page(
     session: Session,
     Extension(conn): Extension<DatabaseConnection>,
-    Query(query): Query<PaginatedQuery<RoleFilterDto>>,
+    Json(params): Json<PageableQueryDto<RoleFilterDto>>,
 ) -> ServerResult<ApiResponse> {
     session.assert_has_permission(OperationPermission::QueryRoles)?;
 
     let role_service = RoleService::new(conn);
 
-    let (records, total) = role_service.query_roles_by_page(query).await?;
+    let (records, total) = role_service.query_roles_by_page(params.into()).await?;
     let records = records.into_iter().map(RoleDto::from).collect::<Vec<_>>();
 
     Ok(ApiResponse::json(PaginatedData { records, total }))

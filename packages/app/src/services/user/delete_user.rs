@@ -13,7 +13,7 @@ impl UserService {
     pub async fn delete_users(&self, params: DeleteUsersParams) -> AppResult<()> {
         users::Entity::delete_many()
             .filter(users::Column::Id.is_in(params.0))
-            .exec(&self.0)
+            .exec(&self.conn)
             .await?;
 
         Ok(())

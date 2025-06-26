@@ -1,7 +1,8 @@
+use entity::role_groups;
 use sea_orm::DatabaseConnection;
 
 use crate::impl_service;
 
 pub mod query_role_groups;
 
-impl_service!(RoleGroupService, DatabaseConnection);
+impl_service!(RoleGroupService, DatabaseConnection, role_groups::Entity);

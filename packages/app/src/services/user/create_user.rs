@@ -38,7 +38,7 @@ impl UserService {
             updated_at: ActiveValue::NotSet,
         };
         let result = users::Entity::insert(user_active_model)
-            .exec(&self.0)
+            .exec(&self.conn)
             .await?;
 
         Ok(result.last_insert_id)

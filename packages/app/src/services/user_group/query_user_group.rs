@@ -1,5 +1,6 @@
-use sea_orm::prelude::*;
-use serde::Serialize;
+use migration::{ColumnRef, IntoColumnRef};
+use sea_orm::{Condition, prelude::*};
+use serde::{Deserialize, Serialize};
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 use utoipa::ToSchema;
 
@@ -11,34 +12,47 @@ use crate::{
     models::user_group::UserGroup,
     result::AppResult,
     services::user_group::UserGroupService,
-    utils::query::{Cursor, FilterAtom, FilterCondition, PageableQuery, SelectQuery, TreeQuery},
+    utils::query::{Cursor, PageableQuery, TreeQuery},
 };
 
-impl UserGroupService {
-    pub async fn query_groups_by_page<T: PageableQuery<FilterGroupsParams>>(
-        &self,
-        params: T,
-    ) -> AppResult<(Vec<UserGroup>, i64)> {
-        let mut select_query = SelectQuery::default().with_cursor(params.cursor());
-        let filter = params.into_filter();
-        if let Some(ref name) = filter.name {
-            if !name.is_empty() {
-                select_query.add_atom_filter(FilterAtom {
-                    field: user_groups::Column::Name.as_str().to_string(),
-                    condition: FilterCondition::Like(format!("%{name}%")),
-                });
-            }
-        }
-        let (groups, count) = select_query
-            .all_with_count::<user_groups::Model>(user_groups::Entity, &self.0)
-            .await?;
-        let groups = groups.into_iter().map(UserGroup::from).collect();
+#[derive(Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct UserGroupsFilterParams {
+    pub name: Option<String>,
+}
 
-        Ok((groups, count))
+impl From<UserGroupsFilterParams> for Condition {
+    fn from(value: UserGroupsFilterParams) -> Self {
+        Condition::all().add_option(value.name.map(|name| user_groups::Column::Name.like(name)))
+    }
+}
+
+#[derive(Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub enum UserGroupsOrderField {
+    Name,
+}
+
+impl From<UserGroupsOrderField> for ColumnRef {
+    fn from(value: UserGroupsOrderField) -> Self {
+        match value {
+            UserGroupsOrderField::Name => user_groups::Column::Name.into_column_ref(),
+        }
+    }
+}
+
+impl UserGroupService {
+    pub async fn query_user_groups_by_page(
+        &self,
+        params: PageableQuery<UserGroupsFilterParams, UserGroupsOrderField>,
+    ) -> AppResult<(Vec<UserGroup>, i64)> {
+        let (records, total) = self.crud.find_by_condition_with_count(params).await?;
+        let groups = records.into_iter().map(UserGroup::from).collect::<Vec<_>>();
+        Ok((groups, total))
     }
 
     pub async fn query_user_group_by_id(&self, id: Uuid) -> AppResult<UserGroup> {
-        let group = user_groups::Entity::find_by_id(id).one(&self.0).await?;
+        let group = self.crud.find_by_id(id).await?;
 
         let Some(group) = group else {
             return Err(AppException::UserGroupNotFound.into());
@@ -74,7 +88,7 @@ impl UserGroupService {
 
     pub async fn query_user_group_ancestors(&self, group_id: Uuid) -> AppResult<Vec<UserGroup>> {
         let groups = TreeQuery::new(user_groups::Entity)
-            .query_ancestors_with_one(&self.0, group_id)
+            .query_ancestors_with_one(&self.conn, group_id)
             .await?;
         if groups.is_empty() {
             return Err(AppException::UserGroupNotFound.into());
@@ -92,7 +106,7 @@ impl UserGroupService {
         }
 
         let groups = TreeQuery::new(user_groups::Entity)
-            .query_ancestors_with_many(&self.0, group_id_list)
+            .query_ancestors_with_many(&self.conn, group_id_list)
             .await?;
         if groups.is_empty() {
             return Err(AppException::UserGroupNotFound.into());
@@ -106,7 +120,7 @@ impl UserGroupService {
         group_id: Uuid,
     ) -> AppResult<Vec<user_groups::Model>> {
         let groups = TreeQuery::new(user_groups::Entity)
-            .query_descendants_with_one(&self.0, group_id)
+            .query_descendants_with_one(&self.conn, group_id)
             .await?;
 
         Ok(groups)
@@ -116,7 +130,7 @@ impl UserGroupService {
         let groups = user_groups::Entity::find()
             .inner_join(relation_users_user_groups::Entity)
             .filter(relation_users_user_groups::Column::UserId.eq(user_id))
-            .all(&self.0)
+            .all(&self.conn)
             .await?;
 
         Ok(groups.into_iter().map(UserGroup::from).collect())
@@ -133,7 +147,7 @@ impl UserGroupService {
         let results = user_groups::Entity::find()
             .find_also_related(relation_users_user_groups::Entity)
             .filter(relation_users_user_groups::Column::UserId.is_in(user_id_list))
-            .all(&self.0)
+            .all(&self.conn)
             .await?;
 
         let mut map = HashMap::new();
@@ -151,7 +165,7 @@ impl UserGroupService {
         let groups = user_groups::Entity::find()
             .inner_join(relation_roles_user_groups::Entity)
             .filter(relation_roles_user_groups::Column::RoleId.eq(role_id))
-            .all(&self.0)
+            .all(&self.conn)
             .await?;
 
         Ok(groups.into_iter().map(UserGroup::from).collect())
@@ -171,9 +185,5 @@ pub struct GroupTreeNode {
 
 pub struct QueryGroupsByPageParams {
     pub cursor: Cursor,
-    pub name: Option<String>,
-}
-
-pub struct FilterGroupsParams {
     pub name: Option<String>,
 }

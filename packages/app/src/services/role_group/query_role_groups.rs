@@ -1,4 +1,4 @@
-use sea_orm::prelude::*;
+use sea_orm::{Condition, prelude::*};
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use entity::{
@@ -12,35 +12,33 @@ use crate::{
     models::role_group::RoleGroup,
     result::AppResult,
     services::role_group::RoleGroupService,
-    utils::query::{Cursor, FilterAtom, FilterCondition, PageableQuery, SelectQuery, TreeQuery},
+    utils::query::{Cursor, PageableQuery, TreeQuery},
 };
 
-impl RoleGroupService {
-    pub async fn query_role_groups_by_page<T: PageableQuery<FilterRoleGroupsParams>>(
-        &self,
-        params: T,
-    ) -> AppResult<(Vec<RoleGroup>, i64)> {
-        let mut select_query = SelectQuery::default().with_cursor(params.cursor());
-        let filter = params.into_filter();
-        if let Some(ref name) = filter.name {
-            if !name.is_empty() {
-                select_query.add_atom_filter(FilterAtom {
-                    field: role_groups::Column::Name.as_str().to_string(),
-                    condition: FilterCondition::Like(format!("%{name}%")),
-                });
-            }
-        }
-        let (role_groups, count) = select_query
-            .all_with_count::<role_groups::Model>(role_groups::Entity, &self.0)
-            .await?;
-        let role_groups = role_groups.into_iter().map(RoleGroup::from).collect();
+pub struct FilterRoleGroupsParams {
+    pub name: Option<String>,
+}
 
-        Ok((role_groups, count))
+impl From<FilterRoleGroupsParams> for Condition {
+    fn from(value: FilterRoleGroupsParams) -> Self {
+        Condition::all().add_option(value.name.map(|name| role_groups::Column::Name.like(name)))
+    }
+}
+
+impl RoleGroupService {
+    pub async fn query_role_groups_by_page(
+        &self,
+        params: PageableQuery<FilterRoleGroupsParams>,
+    ) -> AppResult<(Vec<RoleGroup>, i64)> {
+        let (records, total) = self.crud.find_by_condition_with_count(params).await?;
+        let role_groups = records.into_iter().map(RoleGroup::from).collect();
+
+        Ok((role_groups, total))
     }
 
     pub async fn query_role_group_by_id(&self, role_group_id: Uuid) -> AppResult<RoleGroup> {
         let role_group = role_groups::Entity::find_by_id(role_group_id)
-            .one(&self.0)
+            .one(&self.conn)
             .await?
             .ok_or(AppException::RoleGroupNotFound)?;
 
@@ -49,7 +47,7 @@ impl RoleGroupService {
 
     pub async fn query_role_group_tree(&self, role_group_id: Uuid) -> AppResult<RoleGroupTree> {
         let role_groups = TreeQuery::new(role_groups::Entity)
-            .query_descendants_with_one(&self.0, role_group_id)
+            .query_descendants_with_one(&self.conn, role_group_id)
             .await?
             .into_iter()
             .map(|x| {
@@ -95,7 +93,7 @@ impl RoleGroupService {
         role_group_id_list: Vec<Uuid>,
     ) -> AppResult<Vec<RoleGroup>> {
         let role_groups = TreeQuery::new(role_groups::Entity)
-            .query_descendants_with_many(&self.0, role_group_id_list)
+            .query_descendants_with_many(&self.conn, role_group_id_list)
             .await?;
 
         Ok(role_groups.into_iter().map(RoleGroup::from).collect())
@@ -105,24 +103,24 @@ impl RoleGroupService {
         let groups = role_groups::Entity::find()
             .inner_join(relation_role_groups_users::Entity)
             .filter(relation_role_groups_users::Column::UserId.eq(user_id))
-            .all(&self.0)
+            .all(&self.conn)
             .await?;
 
         Ok(groups.into_iter().map(RoleGroup::from).collect())
     }
 
-    pub async fn query_role_groups_by_user_id_list(&self, user_id_list: Vec<Uuid>) -> AppResult<HashMap<Uuid, Vec<RoleGroup>>> {
+    pub async fn query_role_groups_by_user_id_list(
+        &self,
+        user_id_list: Vec<Uuid>,
+    ) -> AppResult<HashMap<Uuid, Vec<RoleGroup>>> {
         if user_id_list.is_empty() {
             return Ok(HashMap::new());
         }
 
         let results = role_groups::Entity::find()
             .find_also_related(relation_role_groups_users::Entity)
-            .filter(
-                relation_role_groups_users::Column::UserId
-                    .is_in(user_id_list),
-            )
-            .all(&self.0)
+            .filter(relation_role_groups_users::Column::UserId.is_in(user_id_list))
+            .all(&self.conn)
             .await?;
 
         let mut map = HashMap::new();
@@ -143,7 +141,7 @@ impl RoleGroupService {
         let groups = role_groups::Entity::find()
             .inner_join(relation_role_groups_departments::Entity)
             .filter(relation_role_groups_departments::Column::DepartmentId.eq(department_id))
-            .all(&self.0)
+            .all(&self.conn)
             .await?;
 
         Ok(groups.into_iter().map(RoleGroup::from).collect())
@@ -158,7 +156,7 @@ impl RoleGroupService {
             .filter(
                 relation_role_groups_departments::Column::DepartmentId.is_in(department_id_list),
             )
-            .all(&self.0)
+            .all(&self.conn)
             .await?;
         let mut map = HashMap::new();
         for (role_group, relation) in results {
@@ -177,7 +175,7 @@ impl RoleGroupService {
         let results = role_groups::Entity::find()
             .find_also_related(relation_role_groups_user_groups::Entity)
             .filter(relation_role_groups_user_groups::Column::UserGroupId.is_in(user_group_id_list))
-            .all(&self.0)
+            .all(&self.conn)
             .await?;
         let mut map = HashMap::new();
         for (role_group, relation) in results {
@@ -196,7 +194,7 @@ impl RoleGroupService {
         let groups = role_groups::Entity::find()
             .inner_join(relation_role_groups_user_groups::Entity)
             .filter(relation_role_groups_user_groups::Column::UserGroupId.eq(user_group_id))
-            .all(&self.0)
+            .all(&self.conn)
             .await?;
 
         Ok(groups.into_iter().map(RoleGroup::from).collect())
@@ -212,9 +210,5 @@ pub struct RoleGroupTreeNode {
 
 pub struct QueryRoleGroupsByPageParams {
     pub cursor: Cursor,
-    pub name: Option<String>,
-}
-
-pub struct FilterRoleGroupsParams {
     pub name: Option<String>,
 }

@@ -1,14 +1,13 @@
-use app::{
-    services::user_group::{UserGroupService, create_user_group::CreateGroupParams},
-    utils::query::PaginatedQuery,
+use app::services::user_group::{
+    UserGroupService, create_user_group::CreateGroupParams, query_user_group::UserGroupsOrderField,
 };
-use axum::{Extension, Json, extract::Query};
+use axum::{Extension, Json};
 use sea_orm::DatabaseConnection;
 use shared::enums::OperationPermission;
 use utoipa::OpenApi;
 
 use crate::{
-    dto::PaginatedQueryDto,
+    dto::PageableQueryDto,
     extractors::session::Session,
     init_router,
     response::{ApiResponse, Null, PaginatedData, ResponseJson},
@@ -21,10 +20,10 @@ use crate::{
 use super::dto::{CreateGroupRequestDto, FilterGroupsDto, GroupDto};
 
 #[derive(OpenApi)]
-#[openapi(paths(create_group, query_groups_by_page, delete_groups, update_group))]
+#[openapi(paths(create_user_group, query_groups_by_page, delete_groups, update_group))]
 pub(crate) struct ApiDoc;
 init_router!(
-    create_group,
+    create_user_group,
     query_groups_by_page,
     delete_groups,
     update_group
@@ -34,9 +33,9 @@ init_router!(
 #[utoipa::path(
     operation_id = "queryGroupsByPage",
     description = "Query groups by page",
-    get,
+    post,
     path = "/queryGroupsByPage",
-    params(PaginatedQueryDto, FilterGroupsDto),
+    request_body = PageableQueryDto<FilterGroupsDto, UserGroupsOrderField>,
     responses(
         (status = OK, description = "ok", body = ResponseJson<PaginatedData<GroupDto>>)
     )
@@ -44,13 +43,15 @@ init_router!(
 pub async fn query_groups_by_page(
     session: Session,
     Extension(conn): Extension<DatabaseConnection>,
-    Query(query): Query<PaginatedQuery<FilterGroupsDto>>,
+    Json(params): Json<PageableQueryDto<FilterGroupsDto, UserGroupsOrderField>>,
 ) -> ServerResult<ApiResponse> {
     session.assert_has_permission(OperationPermission::QueryGroups)?;
 
     let group_service = UserGroupService::new(conn);
 
-    let (groups, total) = group_service.query_groups_by_page(query).await?;
+    let (groups, total) = group_service
+        .query_user_groups_by_page(params.into())
+        .await?;
     let records = groups.into_iter().map(GroupDto::from).collect::<Vec<_>>();
 
     Ok(ApiResponse::json(PaginatedData { records, total }))
@@ -67,7 +68,7 @@ pub async fn query_groups_by_page(
         (status = OK, description = "ok", body = ResponseJson<CreateGroupResponseDto>)
     )
 )]
-pub async fn create_group(
+pub async fn create_user_group(
     session: Session,
     Extension(conn): Extension<DatabaseConnection>,
     Json(params): Json<CreateGroupRequestDto>,
@@ -77,7 +78,7 @@ pub async fn create_group(
     let group_service = UserGroupService::new(conn);
 
     let group_id = group_service
-        .create_group(CreateGroupParams {
+        .create_user_group(CreateGroupParams {
             name: params.name,
             parent_id: params.parent_id,
             description: params.description,
@@ -107,7 +108,7 @@ pub async fn delete_groups(
     session.assert_has_permission(OperationPermission::DeleteGroup)?;
 
     let group_service = UserGroupService::new(conn);
-    group_service.delete_groups(params.into()).await?;
+    group_service.delete_user_groups(params.into()).await?;
     Ok(ApiResponse::null())
 }
 
@@ -130,6 +131,6 @@ pub async fn update_group(
     session.assert_has_permission(OperationPermission::UpdateGroup)?;
 
     let group_service = UserGroupService::new(conn);
-    group_service.update_group(params.into()).await?;
+    group_service.update_user_group(params.into()).await?;
     Ok(ApiResponse::null())
 }

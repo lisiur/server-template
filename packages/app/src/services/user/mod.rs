@@ -1,8 +1,9 @@
+use entity::users;
 use sea_orm::DatabaseConnection;
 
 use crate::impl_service;
 pub mod create_user;
-pub mod delete_users;
-pub mod query_users;
+pub mod delete_user;
+pub mod query_user;
 
-impl_service!(UserService, DatabaseConnection);
+impl_service!(UserService, DatabaseConnection, users::Entity);

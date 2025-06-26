@@ -1,11 +1,11 @@
-use app::{services::permission::PermissionService, utils::query::PaginatedQuery};
-use axum::{Extension, Json, extract::Query};
+use app::services::permission::PermissionService;
+use axum::{Extension, Json};
 use sea_orm::DatabaseConnection;
 use shared::enums::OperationPermission;
 use utoipa::OpenApi;
 
 use crate::{
-    dto::PaginatedQueryDto,
+    dto::PageableQueryDto,
     extractors::session::Session,
     init_router,
     response::{ApiResponse, Null, PaginatedData, ResponseJson, ResponseJsonNull},
@@ -38,7 +38,7 @@ init_router!(
     description = "Query permissions by page",
     get,
     path = "/queryPermissionsByPage",
-    params(PaginatedQueryDto, FilterPermissionsDto),
+    request_body = PageableQueryDto<FilterPermissionsDto>,
     responses(
         (status = OK, description = "ok", body = ResponseJson<PaginatedData<PermissionDto>>)
     )
@@ -46,13 +46,15 @@ init_router!(
 pub async fn query_permissions_by_page(
     session: Session,
     Extension(conn): Extension<DatabaseConnection>,
-    Query(query): Query<PaginatedQuery<FilterPermissionsDto>>,
+    Json(params): Json<PageableQueryDto<FilterPermissionsDto>>,
 ) -> ServerResult<ApiResponse> {
     session.assert_has_permission(OperationPermission::QueryPermissions)?;
 
     let permission_service = PermissionService::new(conn);
 
-    let (records, total) = permission_service.query_permissions_by_page(query).await?;
+    let (records, total) = permission_service
+        .query_permissions_by_page(params.into())
+        .await?;
 
     let records = records
         .into_iter()

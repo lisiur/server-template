@@ -11,25 +11,25 @@ use crate::{response::ResponseErrorJson, result::ServerResult};
 
 #[derive(Error, Debug)]
 pub enum ServerError {
-    #[error("Exception: {0}")]
+    #[error("ServerException::{0}")]
     Exception(#[from] ServerException),
 
-    #[error("{0}")]
+    #[error("AppError::{0}")]
     App(#[from] AppError),
 
-    #[error("IO error: {0}")]
+    #[error("IOError::{0}")]
     IO(#[from] std::io::Error),
 
-    #[error("Database error: {0}")]
+    #[error("DatabaseError::{0}")]
     Db(#[from] DbErr),
 
-    #[error("Sqlx error: {0}")]
+    #[error("SqlxError::{0}")]
     Sqlx(#[from] SqlxError),
 
-    #[error("Config error: {0}")]
+    #[error("ConfigError::{0}")]
     Config(#[from] config::ConfigError),
 
-    #[error("Anyhow error: {0}")]
+    #[error("Anyhow::{0}")]
     Anyhow(#[from] anyhow::Error),
 }
 
@@ -55,7 +55,7 @@ impl ServerError {
     pub fn code(&self) -> String {
         match &self {
             &Self::Exception(exception) => exception.code.to_string(),
-            _ => self.status().to_string(),
+            _ => self.status().as_str().to_string(),
         }
     }
 }

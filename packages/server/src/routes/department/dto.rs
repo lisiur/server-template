@@ -7,7 +7,7 @@ use app::{
 };
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use utoipa::{IntoParams, ToSchema};
+use utoipa::ToSchema;
 use uuid::Uuid;
 
 #[derive(Debug, ToSchema, Deserialize)]
@@ -60,9 +60,9 @@ impl From<Department> for DepartmentDto {
 }
 
 /// Department filter params
-#[derive(Debug, Clone, Deserialize, IntoParams)]
+#[derive(Debug, Clone, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
-#[into_params(parameter_in = Query, rename_all  = "camelCase")]
+#[schema(rename_all = "camelCase")]
 pub struct FilterDepartmentsDto {
     pub name: Option<String>,
 }

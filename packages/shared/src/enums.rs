@@ -23,6 +23,19 @@ pub enum PermissionKind {
     Data,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, EnumString, Display, ToSchema)]
+#[serde(rename_all = "camelCase")]
+#[strum(serialize_all = "snake_case")]
+pub enum CategoryType {
+    Income,
+    Expenditure,
+    Transfer,
+    Borrow,
+    Repay,
+    BorrowLoan,
+    RepayLoan,
+}
+
 #[derive(
     Clone, Debug, PartialEq, Eq, Serialize, Deserialize, EnumString, Display, ToSchema, Hash,
 )]

@@ -25,12 +25,12 @@ pub struct LoginParams {
 
 impl AuthService {
     pub async fn login(&self, params: LoginParams) -> AppResult<(Uuid, User)> {
-        let user_service = UserService::new(self.0.clone());
-        let auth_service = AuthService::new(self.0.clone());
-        let role_service = RoleService::new(self.0.clone());
-        let group_service = UserGroupService::new(self.0.clone());
-        let department_service = DepartmentService::new(self.0.clone());
-        let auth_token_service = AuthTokenService::new(self.0.clone());
+        let user_service = UserService::new(self.conn.clone());
+        let auth_service = AuthService::new(self.conn.clone());
+        let role_service = RoleService::new(self.conn.clone());
+        let group_service = UserGroupService::new(self.conn.clone());
+        let department_service = DepartmentService::new(self.conn.clone());
+        let auth_token_service = AuthTokenService::new(self.conn.clone());
 
         let user = user_service.query_user_by_account(&params.account).await?;
         let password_digest = user.password_digest.as_deref().unwrap_or_default();

@@ -1,11 +1,11 @@
 use app::{
     models::user::User,
-    services::user::{delete_users::DeleteUsersParams, query_users::FilterUsersParams},
+    services::user::{delete_user::DeleteUsersParams, query_user::FilterUsersParams},
 };
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use shared::enums::Gender;
-use utoipa::{IntoParams, ToSchema};
+use utoipa::ToSchema;
 use uuid::Uuid;
 
 #[derive(Debug, ToSchema, Deserialize)]
@@ -51,15 +51,15 @@ impl From<User> for UserDto {
     }
 }
 
-#[derive(Debug, Clone, Deserialize, IntoParams)]
+#[derive(Debug, Clone, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
-#[into_params(parameter_in = Query, rename_all = "camelCase")]
-pub struct FilterUserDto {
+#[schema(rename_all = "camelCase")]
+pub struct UserFilterDto {
     pub account: Option<String>,
 }
 
-impl From<FilterUserDto> for FilterUsersParams {
-    fn from(value: FilterUserDto) -> Self {
+impl From<UserFilterDto> for FilterUsersParams {
+    fn from(value: UserFilterDto) -> Self {
         FilterUsersParams {
             account: value.account,
         }
@@ -72,6 +72,6 @@ pub struct DeleteUsersRequestDto(Vec<Uuid>);
 
 impl From<DeleteUsersRequestDto> for DeleteUsersParams {
     fn from(value: DeleteUsersRequestDto) -> Self {
-        Self(value.0)
+        DeleteUsersParams(value.0)
     }
 }

@@ -1,4 +1,6 @@
+pub mod account_book;
 pub mod auth_token;
+pub mod category;
 pub mod department;
 pub mod permission;
 pub mod permission_group;

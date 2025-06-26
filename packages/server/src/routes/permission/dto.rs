@@ -7,7 +7,7 @@ use app::{
 };
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use utoipa::{IntoParams, ToSchema};
+use utoipa::ToSchema;
 use uuid::Uuid;
 
 #[derive(Debug, ToSchema, Deserialize)]
@@ -79,8 +79,9 @@ impl From<UpdatePermissionRequestDto> for UpdatePermissionParams {
 }
 
 /// Permission filter params
-#[derive(Debug, Clone, Deserialize, IntoParams)]
-#[into_params(parameter_in = Query)]
+#[derive(Debug, Clone, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+#[schema(rename_all = "camelCase")]
 pub struct FilterPermissionsDto {
     pub kind: Option<String>,
 }

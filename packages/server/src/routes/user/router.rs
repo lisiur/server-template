@@ -1,13 +1,10 @@
-use app::{
-    services::user::{UserService, create_user::CreateUserParams},
-    utils::query::PaginatedQuery,
-};
-use axum::{Json, extract::Query};
+use app::services::user::{UserService, create_user::CreateUserParams, query_user::UserOrderField};
+use axum::Json;
 use shared::enums::OperationPermission;
 use utoipa::OpenApi;
 
 use crate::{
-    dto::PaginatedQueryDto,
+    dto::PageableQueryDto,
     extractors::{app_service::AppService, helper::Helper, session::Session},
     init_router,
     response::{ApiResponse, PaginatedData, ResponseJson, ResponseJsonNull},
@@ -15,52 +12,32 @@ use crate::{
     routes::user::dto::DeleteUsersRequestDto,
 };
 
-use super::dto::{CreateUserDto, FilterUserDto, UserDto};
+use super::dto::{CreateUserDto, UserDto, UserFilterDto};
 
 #[derive(OpenApi)]
-#[openapi(paths(query_users, create_user, query_users_by_page, delete_users))]
+#[openapi(paths(create_user, query_users_by_page, delete_users))]
 pub(crate) struct ApiDoc;
-init_router!(query_users, create_user, query_users_by_page, delete_users);
-
-/// Query users
-#[utoipa::path(
-    operation_id = "queryUsers",
-    get,
-    path = "/queryUsers",
-    responses(
-        (status = OK, description = "ok", body = ResponseJson<Vec<UserDto>>)
-    )
-)]
-pub async fn query_users(
-    session: Session,
-    user_service: AppService<UserService>,
-) -> ServerResult<ApiResponse> {
-    session.assert_has_permission(OperationPermission::QueryUsers)?;
-
-    let users = user_service.query_users_list().await?;
-    let users = users.into_iter().map(UserDto::from).collect::<Vec<_>>();
-
-    Ok(ApiResponse::json(users))
-}
+init_router!(create_user, query_users_by_page, delete_users);
 
 /// Query users by page
 #[utoipa::path(
     operation_id = "queryUsersByPage",
-    get,
+    post,
     path = "/queryUsersByPage",
-    params(PaginatedQueryDto, FilterUserDto),
+    request_body = PageableQueryDto<UserFilterDto, UserOrderField>,
     responses(
         (status = OK, description = "ok", body = ResponseJson<PaginatedData<UserDto>>)
     )
 )]
+#[axum::debug_handler]
 pub async fn query_users_by_page(
     session: Session,
     user_service: AppService<UserService>,
-    Query(query): Query<PaginatedQuery<FilterUserDto>>,
+    Json(params): Json<PageableQueryDto<UserFilterDto, UserOrderField>>,
 ) -> ServerResult<ApiResponse> {
     session.assert_has_permission(OperationPermission::QueryUsers)?;
 
-    let (users, total) = user_service.query_users_by_page(query).await?;
+    let (users, total) = user_service.query_users_by_page(params.into()).await?;
     let records = users.into_iter().map(UserDto::from).collect::<Vec<_>>();
 
     Ok(ApiResponse::json(PaginatedData { records, total }))

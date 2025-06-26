@@ -20,7 +20,7 @@ pub struct RegisterParams {
 
 impl AuthService {
     pub async fn register(&self, params: RegisterParams) -> AppResult<(Uuid, User)> {
-        let user_service = UserService::new(self.0.clone());
+        let user_service = UserService::new(self.conn.clone());
         user_service
             .create_user(CreateUserParams {
                 account: params.account.clone(),

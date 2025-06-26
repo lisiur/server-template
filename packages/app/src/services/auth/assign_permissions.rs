@@ -23,7 +23,7 @@ impl AuthService {
                 ..Default::default()
             },
         ))
-        .exec(&self.0)
+        .exec(&self.conn)
         .await?;
 
         Ok(())

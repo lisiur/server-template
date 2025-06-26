@@ -18,7 +18,7 @@ pub struct CreatePermissionParams {
 
 impl PermissionService {
     pub async fn create_permission(&self, params: CreatePermissionParams) -> AppResult<Uuid> {
-        let tx = self.0.begin().await?;
+        let tx = self.conn.begin().await?;
 
         let permission_active_model = permissions::ActiveModel {
             id: Set(Uuid::new_v4()),

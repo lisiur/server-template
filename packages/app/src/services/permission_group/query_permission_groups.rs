@@ -1,4 +1,4 @@
-use sea_orm::prelude::*;
+use sea_orm::{Condition, prelude::*};
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use entity::{
@@ -12,27 +12,29 @@ use crate::{
     models::permission_group::PermissionGroup,
     result::AppResult,
     services::permission_group::PermissionGroupService,
-    utils::query::{Cursor, FilterAtom, FilterCondition, PageableQuery, SelectQuery, TreeQuery},
+    utils::query::{Cursor, PageableQuery, TreeQuery},
 };
 
+pub struct FilterPermissionGroupsParams {
+    pub name: Option<String>,
+}
+
+impl From<FilterPermissionGroupsParams> for Condition {
+    fn from(value: FilterPermissionGroupsParams) -> Self {
+        Condition::all().add_option(
+            value
+                .name
+                .map(|name| permission_groups::Column::Name.like(name)),
+        )
+    }
+}
+
 impl PermissionGroupService {
-    pub async fn query_permission_groups_by_page<T: PageableQuery<FilterPermissionGroupsParams>>(
+    pub async fn query_permission_groups_by_page(
         &self,
-        params: T,
+        params: PageableQuery<FilterPermissionGroupsParams>,
     ) -> AppResult<(Vec<PermissionGroup>, i64)> {
-        let mut select_query = SelectQuery::default().with_cursor(params.cursor());
-        let filter = params.into_filter();
-        if let Some(ref name) = filter.name {
-            if !name.is_empty() {
-                select_query.add_atom_filter(FilterAtom {
-                    field: permission_groups::Column::Name.as_str().to_string(),
-                    condition: FilterCondition::Like(format!("%{name}%")),
-                });
-            }
-        }
-        let (permission_groups, count) = select_query
-            .all_with_count::<permission_groups::Model>(permission_groups::Entity, &self.0)
-            .await?;
+        let (permission_groups, count) = self.crud.find_by_condition_with_count(params).await?;
         let permission_groups = permission_groups
             .into_iter()
             .map(PermissionGroup::from)
@@ -46,7 +48,7 @@ impl PermissionGroupService {
         permission_group_id: Uuid,
     ) -> AppResult<PermissionGroup> {
         let permission_group = permission_groups::Entity::find_by_id(permission_group_id)
-            .one(&self.0)
+            .one(&self.conn)
             .await?
             .ok_or(AppException::PermissionGroupNotFound)?;
 
@@ -58,7 +60,7 @@ impl PermissionGroupService {
         permission_group_id: Uuid,
     ) -> AppResult<PermissionGroupTree> {
         let permission_groups = TreeQuery::new(permission_groups::Entity)
-            .query_descendants_with_one(&self.0, permission_group_id)
+            .query_descendants_with_one(&self.conn, permission_group_id)
             .await?
             .into_iter()
             .map(|x| {
@@ -112,24 +114,24 @@ impl PermissionGroupService {
         let groups = permission_groups::Entity::find()
             .inner_join(relation_permission_groups_users::Entity)
             .filter(relation_permission_groups_users::Column::UserId.eq(user_id))
-            .all(&self.0)
+            .all(&self.conn)
             .await?;
 
         Ok(groups.into_iter().map(PermissionGroup::from).collect())
     }
 
-    pub async fn query_permission_groups_by_user_id_list(&self, user_id_list: Vec<Uuid>) -> AppResult<HashMap<Uuid, Vec<PermissionGroup>>> {
+    pub async fn query_permission_groups_by_user_id_list(
+        &self,
+        user_id_list: Vec<Uuid>,
+    ) -> AppResult<HashMap<Uuid, Vec<PermissionGroup>>> {
         if user_id_list.is_empty() {
             return Ok(HashMap::new());
         }
 
         let results = permission_groups::Entity::find()
             .find_also_related(relation_permission_groups_users::Entity)
-            .filter(
-                relation_permission_groups_users::Column::UserId
-                    .is_in(user_id_list),
-            )
-            .all(&self.0)
+            .filter(relation_permission_groups_users::Column::UserId.is_in(user_id_list))
+            .all(&self.conn)
             .await?;
 
         let mut map = HashMap::new();
@@ -150,7 +152,7 @@ impl PermissionGroupService {
         let groups = permission_groups::Entity::find()
             .inner_join(relation_permission_groups_departments::Entity)
             .filter(relation_permission_groups_departments::Column::DepartmentId.eq(department_id))
-            .all(&self.0)
+            .all(&self.conn)
             .await?;
 
         Ok(groups.into_iter().map(PermissionGroup::from).collect())
@@ -170,7 +172,7 @@ impl PermissionGroupService {
                 relation_permission_groups_departments::Column::DepartmentId
                     .is_in(department_id_list),
             )
-            .all(&self.0)
+            .all(&self.conn)
             .await?;
 
         let mut map = HashMap::new();
@@ -191,7 +193,7 @@ impl PermissionGroupService {
         let groups = permission_groups::Entity::find()
             .inner_join(relation_permission_groups_user_groups::Entity)
             .filter(relation_permission_groups_user_groups::Column::UserGroupId.eq(user_group_id))
-            .all(&self.0)
+            .all(&self.conn)
             .await?;
 
         Ok(groups.into_iter().map(PermissionGroup::from).collect())
@@ -211,7 +213,7 @@ impl PermissionGroupService {
                 relation_permission_groups_user_groups::Column::UserGroupId
                     .is_in(user_group_id_list),
             )
-            .all(&self.0)
+            .all(&self.conn)
             .await?;
 
         let mut map = HashMap::new();
@@ -232,7 +234,7 @@ impl PermissionGroupService {
         let groups = permission_groups::Entity::find()
             .inner_join(relation_permission_groups_roles::Entity)
             .filter(relation_permission_groups_roles::Column::RoleId.eq(role))
-            .all(&self.0)
+            .all(&self.conn)
             .await?;
 
         Ok(groups.into_iter().map(PermissionGroup::from).collect())
@@ -248,11 +250,8 @@ impl PermissionGroupService {
 
         let results = permission_groups::Entity::find()
             .find_also_related(relation_permission_groups_roles::Entity)
-            .filter(
-                relation_permission_groups_roles::Column::RoleId
-                    .is_in(role_id_list),
-            )
-            .all(&self.0)
+            .filter(relation_permission_groups_roles::Column::RoleId.is_in(role_id_list))
+            .all(&self.conn)
             .await?;
 
         let mut map = HashMap::new();
@@ -271,10 +270,13 @@ impl PermissionGroupService {
         permission_group_id_list: Vec<Uuid>,
     ) -> AppResult<Vec<PermissionGroup>> {
         let permission_groups = TreeQuery::new(permission_groups::Entity)
-            .query_descendants_with_many(&self.0, permission_group_id_list)
+            .query_descendants_with_many(&self.conn, permission_group_id_list)
             .await?;
 
-        Ok(permission_groups.into_iter().map(PermissionGroup::from).collect())
+        Ok(permission_groups
+            .into_iter()
+            .map(PermissionGroup::from)
+            .collect())
     }
 }
 
@@ -287,9 +289,5 @@ pub struct PermissionGroupTreeNode {
 
 pub struct QueryPermissionGroupsByPageParams {
     pub cursor: Cursor,
-    pub name: Option<String>,
-}
-
-pub struct FilterPermissionGroupsParams {
     pub name: Option<String>,
 }

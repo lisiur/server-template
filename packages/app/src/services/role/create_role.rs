@@ -22,7 +22,7 @@ impl RoleService {
             built_in: Set(false),
             ..Default::default()
         };
-        let result = roles::Entity::insert(active_model).exec(&self.0).await?;
+        let result = roles::Entity::insert(active_model).exec(&self.conn).await?;
 
         Ok(result.last_insert_id)
     }

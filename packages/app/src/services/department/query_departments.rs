@@ -1,4 +1,4 @@
-use sea_orm::prelude::*;
+use sea_orm::{Condition, prelude::*};
 use serde::Serialize;
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 use utoipa::ToSchema;
@@ -11,27 +11,25 @@ use crate::{
     models::department::Department,
     result::AppResult,
     services::department::DepartmentService,
-    utils::query::{Cursor, FilterAtom, FilterCondition, PageableQuery, SelectQuery, TreeQuery},
+    utils::query::{Cursor, PageableQuery, TreeQuery},
 };
 
+pub struct FilterDepartmentsParams {
+    pub name: Option<String>,
+}
+
+impl From<FilterDepartmentsParams> for Condition {
+    fn from(value: FilterDepartmentsParams) -> Self {
+        Condition::all().add_option(value.name.map(|name| departments::Column::Name.like(name)))
+    }
+}
+
 impl DepartmentService {
-    pub async fn query_departments_by_page<T: PageableQuery<FilterDepartmentsParams>>(
+    pub async fn query_departments_by_page(
         &self,
-        params: T,
+        params: PageableQuery<FilterDepartmentsParams>,
     ) -> AppResult<(Vec<Department>, i64)> {
-        let mut select_query = SelectQuery::default().with_cursor(params.cursor());
-        let filter = params.into_filter();
-        if let Some(ref name) = filter.name {
-            if !name.is_empty() {
-                select_query.add_atom_filter(FilterAtom {
-                    field: departments::Column::Name.as_str().to_string(),
-                    condition: FilterCondition::Like(format!("%{name}%")),
-                });
-            }
-        }
-        let (departments, count) = select_query
-            .all_with_count::<departments::Model>(departments::Entity, &self.0)
-            .await?;
+        let (departments, count) = self.crud.find_by_condition_with_count(params).await?;
         let departments = departments.into_iter().map(Department::from).collect();
 
         Ok((departments, count))
@@ -39,7 +37,7 @@ impl DepartmentService {
 
     pub async fn query_department_by_id(&self, department_id: Uuid) -> AppResult<Department> {
         let department = departments::Entity::find_by_id(department_id)
-            .one(&self.0)
+            .one(&self.conn)
             .await?;
 
         let Some(department) = department else {
@@ -51,7 +49,7 @@ impl DepartmentService {
 
     pub async fn query_department_tree(&self, department_id: Uuid) -> AppResult<DepartmentTree> {
         let departments = TreeQuery::new(departments::Entity)
-            .query_descendants_with_one(&self.0, department_id)
+            .query_descendants_with_one(&self.conn, department_id)
             .await?;
 
         if departments.is_empty() {
@@ -82,7 +80,7 @@ impl DepartmentService {
         department_id: Uuid,
     ) -> AppResult<Vec<Department>> {
         let departments = TreeQuery::new(departments::Entity)
-            .query_ancestors_with_one(&self.0, department_id)
+            .query_ancestors_with_one(&self.conn, department_id)
             .await?;
 
         if departments.is_empty() {
@@ -96,7 +94,7 @@ impl DepartmentService {
         let groups = departments::Entity::find()
             .inner_join(relation_users_departments::Entity)
             .filter(relation_users_departments::Column::UserId.eq(user_id))
-            .all(&self.0)
+            .all(&self.conn)
             .await?;
 
         Ok(groups.into_iter().map(Department::from).collect())
@@ -113,7 +111,7 @@ impl DepartmentService {
         let results = departments::Entity::find()
             .find_also_related(relation_users_departments::Entity)
             .filter(relation_users_departments::Column::UserId.is_in(user_id_list))
-            .all(&self.0)
+            .all(&self.conn)
             .await?;
 
         let mut map = HashMap::new();
@@ -131,7 +129,7 @@ impl DepartmentService {
         let departments = departments::Entity::find()
             .inner_join(relation_roles_departments::Entity)
             .filter(relation_roles_departments::Column::RoleId.eq(role_id))
-            .all(&self.0)
+            .all(&self.conn)
             .await?;
 
         Ok(departments.into_iter().map(Department::from).collect())
@@ -151,9 +149,5 @@ pub struct DepartmentTreeNode {
 
 pub struct QueryDepartmentsByPageParams {
     pub cursor: Cursor,
-    pub name: Option<String>,
-}
-
-pub struct FilterDepartmentsParams {
     pub name: Option<String>,
 }

@@ -70,7 +70,7 @@ impl AuthTokenService {
         };
 
         let result = auth_tokens::Entity::insert(active_model)
-            .exec(&self.0)
+            .exec(&self.conn)
             .await?;
 
         Ok(result.last_insert_id)

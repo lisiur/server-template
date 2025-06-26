@@ -5,16 +5,16 @@ use serde::Serialize;
 
 #[derive(thiserror::Error, Debug)]
 pub enum AppError {
-    #[error("{0}")]
+    #[error("AppException::{0}")]
     Exception(#[from] AppException),
 
-    #[error("database error: {0}")]
+    #[error("DatabaseError::{0}")]
     Db(#[from] DbErr),
 
-    #[error("sqlx error: {0}")]
+    #[error("SqlxError::{0}")]
     Sqlx(#[from] SqlxError),
 
-    #[error("{0}")]
+    #[error("Anyhow::{0}")]
     Anyhow(#[from] anyhow::Error),
 }
 

@@ -13,7 +13,7 @@ impl PermissionService {
     pub async fn delete_permissions(&self, params: DeletePermissionsParams) -> AppResult<()> {
         permissions::Entity::delete_many()
             .filter(permissions::Column::Id.is_in(params.0))
-            .exec(&self.0)
+            .exec(&self.conn)
             .await?;
 
         Ok(())

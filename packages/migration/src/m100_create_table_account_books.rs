@@ -13,8 +13,8 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .col(uuid(AccountBooks::Id))
                     .col(uuid(AccountBooks::OwnerId))
-                    .col(uuid(AccountBooks::Name))
-                    .col(uuid(AccountBooks::Currency))
+                    .col(string(AccountBooks::Name))
+                    .col(string(AccountBooks::Currency))
                     .to_owned(),
             )
             .await?

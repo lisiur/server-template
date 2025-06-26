@@ -1,45 +1,38 @@
 use std::collections::HashMap;
 
-use crate::{
-    error::AppException, models::role::Role, utils::query::{FilterAtom, FilterCondition, PageableQuery}
-};
+use crate::{error::AppException, models::role::Role, utils::query::PageableQuery};
 use entity::{
     relation_roles_departments, relation_roles_role_groups, relation_roles_user_groups,
     relation_roles_users, roles,
 };
-use sea_orm::prelude::*;
+use sea_orm::{Condition, prelude::*};
 use uuid::Uuid;
 
-use crate::{result::AppResult, services::role::RoleService, utils::query::SelectQuery};
+use crate::{result::AppResult, services::role::RoleService};
+
+pub struct FilterRolesParams {
+    pub name: Option<String>,
+}
+
+impl From<FilterRolesParams> for Condition {
+    fn from(value: FilterRolesParams) -> Self {
+        Condition::all().add_option(value.name.map(|name| roles::Column::Name.like(name)))
+    }
+}
 
 impl RoleService {
-    pub async fn query_roles_by_page<T: PageableQuery<FilterRolesParams>>(
+    pub async fn query_roles_by_page(
         &self,
-        params: T,
+        params: PageableQuery<FilterRolesParams>,
     ) -> AppResult<(Vec<Role>, i64)> {
-        let mut select_query = SelectQuery::default().with_cursor(params.cursor());
-        let filter = params.into_filter();
-        if let Some(ref name) = filter.name {
-            if !name.is_empty() {
-                select_query.add_atom_filter(FilterAtom {
-                    field: roles::Column::Name.as_str().to_string(),
-                    condition: FilterCondition::Like(format!("%{name}%")),
-                });
-            }
-        }
-        let (roles, count) = select_query
-            .all_with_count::<roles::Model>(roles::Entity, &self.0)
-            .await?;
+        let (records, total) = self.crud.find_by_condition_with_count(params).await?;
+        let roles = records.into_iter().map(Role::from).collect();
 
-        let roles = roles.into_iter().map(Role::from).collect();
-
-        Ok((roles, count))
+        Ok((roles, total))
     }
 
     pub async fn query_role_by_id(&self, id: Uuid) -> AppResult<Role> {
-        let role = roles::Entity::find_by_id(id)
-            .one(&self.0)
-            .await?;
+        let role = roles::Entity::find_by_id(id).one(&self.conn).await?;
 
         let Some(role) = role else {
             return Err(AppException::RoleNotFound.into());
@@ -52,7 +45,7 @@ impl RoleService {
     pub async fn query_roles_by_role_group_id(&self, role_group_id: Uuid) -> AppResult<Vec<Role>> {
         let roles = roles::Entity::find()
             .filter(roles::Column::ParentId.eq(role_group_id))
-            .all(&self.0)
+            .all(&self.conn)
             .await?;
 
         Ok(roles.into_iter().map(Role::from).collect())
@@ -63,24 +56,24 @@ impl RoleService {
         let roles = roles::Entity::find()
             .inner_join(relation_roles_users::Entity)
             .filter(relation_roles_users::Column::UserId.eq(user_id))
-            .all(&self.0)
+            .all(&self.conn)
             .await?;
 
         Ok(roles.into_iter().map(Role::from).collect())
     }
 
-    pub async fn query_roles_by_user_id_list(&self, user_id_list: Vec<Uuid>) -> AppResult<HashMap<Uuid, Vec<Role>>> {
+    pub async fn query_roles_by_user_id_list(
+        &self,
+        user_id_list: Vec<Uuid>,
+    ) -> AppResult<HashMap<Uuid, Vec<Role>>> {
         if user_id_list.is_empty() {
             return Ok(HashMap::new());
         }
 
         let results = roles::Entity::find()
             .find_also_related(relation_roles_users::Entity)
-            .filter(
-                relation_roles_users::Column::UserId
-                    .is_in(user_id_list),
-            )
-            .all(&self.0)
+            .filter(relation_roles_users::Column::UserId.is_in(user_id_list))
+            .all(&self.conn)
             .await?;
 
         let mut map = HashMap::new();
@@ -99,7 +92,7 @@ impl RoleService {
         let roles = roles::Entity::find()
             .inner_join(relation_roles_user_groups::Entity)
             .filter(relation_roles_user_groups::Column::UserGroupId.eq(user_group_id))
-            .all(&self.0)
+            .all(&self.conn)
             .await?;
 
         Ok(roles.into_iter().map(Role::from).collect())
@@ -113,7 +106,7 @@ impl RoleService {
         let results = roles::Entity::find()
             .find_also_related(relation_roles_user_groups::Entity)
             .filter(relation_roles_user_groups::Column::UserGroupId.is_in(user_group_id_list))
-            .all(&self.0)
+            .all(&self.conn)
             .await?;
         let mut map = HashMap::new();
         for (role, relation) in results {
@@ -133,7 +126,7 @@ impl RoleService {
         let results = roles::Entity::find()
             .find_also_related(relation_roles_role_groups::Entity)
             .filter(relation_roles_role_groups::Column::RoleGroupId.is_in(role_group_id_list))
-            .all(&self.0)
+            .all(&self.conn)
             .await?;
         let mut map = HashMap::new();
         for (role, relation) in results {
@@ -150,7 +143,7 @@ impl RoleService {
         let roles = roles::Entity::find()
             .inner_join(relation_roles_departments::Entity)
             .filter(relation_roles_departments::Column::DepartmentId.eq(department_id))
-            .all(&self.0)
+            .all(&self.conn)
             .await?;
 
         Ok(roles.into_iter().map(Role::from).collect())
@@ -164,7 +157,7 @@ impl RoleService {
         let results = roles::Entity::find()
             .find_also_related(relation_roles_departments::Entity)
             .filter(relation_roles_departments::Column::DepartmentId.is_in(department_id_list))
-            .all(&self.0)
+            .all(&self.conn)
             .await?;
 
         let mut map = HashMap::new();
@@ -176,8 +169,4 @@ impl RoleService {
         }
         Ok(map)
     }
-}
-
-pub struct FilterRolesParams {
-    pub name: Option<String>,
 }
