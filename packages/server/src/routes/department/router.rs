@@ -1,6 +1,5 @@
 use app::{services::department::DepartmentService, utils::query::DisableOrder};
-use axum::{Extension, Json};
-use sea_orm::DatabaseConnection;
+use axum::Json;
 use shared::enums::OperationPermission;
 use utoipa::OpenApi;
 
@@ -74,12 +73,10 @@ pub async fn query_departments_by_page(
 )]
 pub async fn create_department(
     session: Session,
-    Extension(conn): Extension<DatabaseConnection>,
+    department_service: AppService<DepartmentService>,
     Json(params): Json<CreateDepartmentRequestDto>,
 ) -> ServerResult<ApiResponse> {
     session.assert_has_permission(OperationPermission::CreateDepartment)?;
-
-    let department_service = DepartmentService::new(conn);
 
     let group_id = department_service.create_department(params.into()).await?;
 
@@ -99,12 +96,11 @@ pub async fn create_department(
 )]
 pub async fn delete_departments(
     session: Session,
-    Extension(conn): Extension<DatabaseConnection>,
+    department_service: AppService<DepartmentService>,
     Json(params): Json<DeleteDepartmentsRequestDto>,
 ) -> ServerResult<ApiResponse> {
     session.assert_has_permission(OperationPermission::DeleteDepartment)?;
 
-    let department_service = DepartmentService::new(conn);
     department_service.delete_departments(params.into()).await?;
     Ok(ApiResponse::null())
 }
@@ -122,12 +118,11 @@ pub async fn delete_departments(
 )]
 pub async fn update_department(
     session: Session,
-    Extension(conn): Extension<DatabaseConnection>,
+    department_service: AppService<DepartmentService>,
     Json(params): Json<UpdateDepartmentRequestDto>,
 ) -> ServerResult<ApiResponse> {
     session.assert_has_permission(OperationPermission::UpdateDepartment)?;
 
-    let department_service = DepartmentService::new(conn);
     department_service.update_department(params.into()).await?;
     Ok(ApiResponse::null())
 }

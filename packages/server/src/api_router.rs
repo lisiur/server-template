@@ -45,6 +45,7 @@ impl<S: Clone + Send + Sync + 'static> ApiRouter<S> {
 #[macro_export]
 macro_rules! init_router {
     ($($handler:ident),*) => {
+        #[allow(dead_code)]
         pub(crate) fn init() -> axum::Router {
             let mut router = crate::api_router::ApiRouter::new();
             $(

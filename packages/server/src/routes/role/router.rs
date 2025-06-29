@@ -1,12 +1,11 @@
 use app::services::role::RoleService;
-use axum::{Extension, Json};
-use sea_orm::DatabaseConnection;
+use axum::Json;
 use shared::enums::OperationPermission;
 use utoipa::OpenApi;
 
 use crate::{
     dto::PageableQueryDto,
-    extractors::session::Session,
+    extractors::{app_service::AppService, session::Session},
     init_router,
     response::{ApiResponse, Null, PaginatedData, ResponseJson, ResponseJsonNull},
     result::ServerResult,
@@ -36,12 +35,10 @@ init_router!(query_roles_by_page, create_role, delete_roles, update_role);
 )]
 pub async fn query_roles_by_page(
     session: Session,
-    Extension(conn): Extension<DatabaseConnection>,
+    role_service: AppService<RoleService>,
     Json(params): Json<PageableQueryDto<RoleFilterDto>>,
 ) -> ServerResult<ApiResponse> {
     session.assert_has_permission(OperationPermission::QueryRoles)?;
-
-    let role_service = RoleService::new(conn);
 
     let (records, total) = role_service.query_roles_by_page(params.into()).await?;
     let records = records.into_iter().map(RoleDto::from).collect::<Vec<_>>();
@@ -62,12 +59,10 @@ pub async fn query_roles_by_page(
 )]
 pub async fn create_role(
     session: Session,
-    Extension(conn): Extension<DatabaseConnection>,
+    role_service: AppService<RoleService>,
     Json(params): Json<CreateRoleRequestDto>,
 ) -> ServerResult<ApiResponse> {
     session.assert_has_permission(OperationPermission::CreateRole)?;
-
-    let role_service = RoleService::new(conn);
 
     let id = role_service.create_role(params.into()).await?;
 
@@ -87,12 +82,10 @@ pub async fn create_role(
 )]
 pub async fn delete_roles(
     session: Session,
-    Extension(conn): Extension<DatabaseConnection>,
+    role_service: AppService<RoleService>,
     Json(params): Json<DeleteRolesRequestDto>,
 ) -> ServerResult<ApiResponse> {
     session.assert_has_permission(OperationPermission::DeleteRole)?;
-
-    let role_service = RoleService::new(conn);
 
     role_service.delete_roles(params.into()).await?;
 
@@ -112,12 +105,11 @@ pub async fn delete_roles(
 )]
 pub async fn update_role(
     session: Session,
-    Extension(conn): Extension<DatabaseConnection>,
+    role_service: AppService<RoleService>,
     Json(params): Json<UpdateRoleRequestDto>,
 ) -> ServerResult<ApiResponse> {
     session.assert_has_permission(OperationPermission::UpdateRole)?;
 
-    let role_service = RoleService::new(conn);
     role_service.update_role(params.into()).await?;
     Ok(ApiResponse::null())
 }

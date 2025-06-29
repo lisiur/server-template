@@ -6,5 +6,7 @@ pub mod permission;
 pub mod permission_group;
 pub mod role;
 pub mod role_group;
+pub mod upload;
+pub mod upload_chunk;
 pub mod user;
 pub mod user_group;

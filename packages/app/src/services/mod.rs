@@ -16,5 +16,7 @@ pub mod role_group;
 pub mod tag;
 pub mod third_user;
 pub mod transaction;
+pub mod upload;
+pub mod upload_chunk;
 pub mod user;
 pub mod user_group;

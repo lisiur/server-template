@@ -65,13 +65,20 @@ async fn main() -> ServerResult<()> {
     let pub_key =
         RsaPublicKey::from_public_key_pem(&pub_key_pem).expect("Error: Invalid public key");
 
+    // Init uploader folder
+    println!("Init upload directory");
+    let upload_dir = setting.upload_dir.as_path();
+    if !upload_dir.exists() {
+        std::fs::create_dir_all(upload_dir)?;
+    }
+
     // Connect database
     println!("Connecting database...");
     let db_conn: DatabaseConnection = Database::connect(&setting.database_url).await?;
 
     // Init app
     println!("Apply migrations...");
-    App::init(db_conn.clone()).await?;
+    let app = App::init(db_conn.clone(), upload_dir.to_path_buf()).await?;
 
     #[derive(OpenApi)]
     #[openapi(
@@ -85,6 +92,7 @@ async fn main() -> ServerResult<()> {
             (path = "/userGroups", api = routes::user_group::router::ApiDoc, tags = ["UserGroup"]),
             (path = "/roles", api = routes::role::router::ApiDoc, tags = ["Role"]),
             (path = "/permissions", api = routes::permission::router::ApiDoc, tags = ["Permission"]),
+            (path = "/uploads", api = routes::upload::router::ApiDoc, tags = ["Upload"]),
         )
     )]
     struct ApiDoc;
@@ -109,6 +117,8 @@ async fn main() -> ServerResult<()> {
         .nest("/session", routes::session::router::init())
         .nest("/system", routes::system::router::init())
         .nest("/users", routes::user::router::init())
+        .nest("/uploads", routes::upload::router::init())
+        .layer(Extension(app))
         .layer(Extension(db_conn))
         .layer(Extension(priv_key))
         .layer(Extension(pub_key))

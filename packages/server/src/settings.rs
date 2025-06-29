@@ -1,4 +1,4 @@
-use std::sync::OnceLock;
+use std::{path::PathBuf, sync::OnceLock};
 
 use serde::{Deserialize, Serialize};
 
@@ -12,6 +12,7 @@ pub struct Settings {
     pub server_port: u16,
     pub private_key: String,
     pub public_key: String,
+    pub upload_dir: PathBuf,
     pub debug: Option<bool>,
 }
 

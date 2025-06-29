@@ -1,4 +1,4 @@
-use migration::ColumnRef;
+use migration::{ColumnRef, ConditionExpression};
 use sea_orm::{Condition, ConnectionTrait, DatabaseConnection, EntityTrait, Statement};
 use serde::Deserialize;
 use utoipa::ToSchema;
@@ -36,6 +36,12 @@ pub struct QueryCondition {
     pub cursor: Option<Cursor>,
 }
 
+impl<T: Into<ConditionExpression>> From<T> for QueryCondition {
+    fn from(value: T) -> Self {
+        Self::default().with_condition(Condition::all().add(value.into()))
+    }
+}
+
 impl QueryCondition {
     pub fn with_condition(mut self, condition: Condition) -> Self {
         self.condition = Some(condition);
@@ -44,6 +50,11 @@ impl QueryCondition {
 
     pub fn with_cursor(mut self, cursor: Cursor) -> Self {
         self.cursor = Some(cursor);
+        self
+    }
+
+    pub fn with_orders(mut self, orders: Vec<Sort>) -> Self {
+        self.orders = Some(orders);
         self
     }
 

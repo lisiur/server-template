@@ -21,3 +21,4 @@ tokio = { workspace = true }
 utoipa = { workspace = true }
 uuid = { workspace = true }
 async-trait = { workspace = true }
+mime_guess = { workspace = true }

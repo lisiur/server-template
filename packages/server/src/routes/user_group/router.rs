@@ -1,14 +1,13 @@
 use app::services::user_group::{
     UserGroupService, create_user_group::CreateGroupParams, query_user_group::UserGroupsOrderField,
 };
-use axum::{Extension, Json};
-use sea_orm::DatabaseConnection;
+use axum::Json;
 use shared::enums::OperationPermission;
 use utoipa::OpenApi;
 
 use crate::{
     dto::PageableQueryDto,
-    extractors::session::Session,
+    extractors::{app_service::AppService, session::Session},
     init_router,
     response::{ApiResponse, Null, PaginatedData, ResponseJson},
     result::ServerResult,
@@ -42,14 +41,12 @@ init_router!(
 )]
 pub async fn query_groups_by_page(
     session: Session,
-    Extension(conn): Extension<DatabaseConnection>,
+    user_group_service: AppService<UserGroupService>,
     Json(params): Json<PageableQueryDto<FilterGroupsDto, UserGroupsOrderField>>,
 ) -> ServerResult<ApiResponse> {
     session.assert_has_permission(OperationPermission::QueryGroups)?;
 
-    let group_service = UserGroupService::new(conn);
-
-    let (groups, total) = group_service
+    let (groups, total) = user_group_service
         .query_user_groups_by_page(params.into())
         .await?;
     let records = groups.into_iter().map(GroupDto::from).collect::<Vec<_>>();
@@ -70,14 +67,12 @@ pub async fn query_groups_by_page(
 )]
 pub async fn create_user_group(
     session: Session,
-    Extension(conn): Extension<DatabaseConnection>,
+    user_group_service: AppService<UserGroupService>,
     Json(params): Json<CreateGroupRequestDto>,
 ) -> ServerResult<ApiResponse> {
     session.assert_has_permission(OperationPermission::CreateGroup)?;
 
-    let group_service = UserGroupService::new(conn);
-
-    let group_id = group_service
+    let group_id = user_group_service
         .create_user_group(CreateGroupParams {
             name: params.name,
             parent_id: params.parent_id,
@@ -102,13 +97,12 @@ pub async fn create_user_group(
 )]
 pub async fn delete_groups(
     session: Session,
-    Extension(conn): Extension<DatabaseConnection>,
+    user_group_service: AppService<UserGroupService>,
     Json(params): Json<DeleteGroupsRequestDto>,
 ) -> ServerResult<ApiResponse> {
     session.assert_has_permission(OperationPermission::DeleteGroup)?;
 
-    let group_service = UserGroupService::new(conn);
-    group_service.delete_user_groups(params.into()).await?;
+    user_group_service.delete_user_groups(params.into()).await?;
     Ok(ApiResponse::null())
 }
 
@@ -125,12 +119,11 @@ pub async fn delete_groups(
 )]
 pub async fn update_group(
     session: Session,
-    Extension(conn): Extension<DatabaseConnection>,
+    user_group_service: AppService<UserGroupService>,
     Json(params): Json<UpdateGroupRequestDto>,
 ) -> ServerResult<ApiResponse> {
     session.assert_has_permission(OperationPermission::UpdateGroup)?;
 
-    let group_service = UserGroupService::new(conn);
-    group_service.update_user_group(params.into()).await?;
+    user_group_service.update_user_group(params.into()).await?;
     Ok(ApiResponse::null())
 }

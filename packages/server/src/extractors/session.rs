@@ -1,10 +1,9 @@
 use std::str::FromStr;
 
-use app::{models::auth_token::SessionTokenPayload, services::auth_token::AuthTokenService};
+use app::{App, models::auth_token::SessionTokenPayload, services::auth_token::AuthTokenService};
 use axum::extract::FromRequestParts;
 use axum_extra::extract::CookieJar;
 use http::request::Parts;
-use sea_orm::DatabaseConnection;
 use uuid::Uuid;
 
 use crate::{error::ServerExceptionCode, result::ServerResult};
@@ -98,8 +97,8 @@ where
             return Err((http::StatusCode::UNAUTHORIZED, "Unauthorized"));
         };
 
-        let conn = parts.extensions.get::<DatabaseConnection>().unwrap();
-        let auth_token_service = AuthTokenService::new(conn.clone());
+        let app = parts.extensions.get::<App>().unwrap();
+        let auth_token_service = AuthTokenService::new(app.clone());
 
         let Ok(Some(auth_token)) = auth_token_service.query_auth_token_by_id(session_id).await
         else {

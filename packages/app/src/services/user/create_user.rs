@@ -1,6 +1,7 @@
 use entity::users;
-use sea_orm::{ActiveValue, EntityTrait, prelude::Uuid};
+use sea_orm::ActiveValue;
 use shared::{enums::Gender, utils::hash_password};
+use uuid::Uuid;
 
 use crate::result::AppResult;
 
@@ -37,10 +38,8 @@ impl UserService {
             created_at: ActiveValue::NotSet,
             updated_at: ActiveValue::NotSet,
         };
-        let result = users::Entity::insert(user_active_model)
-            .exec(&self.conn)
-            .await?;
+        let result = self.crud.create(user_active_model).await?;
 
-        Ok(result.last_insert_id)
+        Ok(result.id)
     }
 }

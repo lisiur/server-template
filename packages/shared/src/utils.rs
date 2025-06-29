@@ -1,3 +1,5 @@
+use std::{io::Write, path::Path};
+
 use argon2::{
     Argon2,
     password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString, rand_core::OsRng},
@@ -9,6 +11,7 @@ use rsa::{
     signature::{SignatureEncoding, SignerMut, Verifier},
 };
 use sha2::Sha256;
+use tokio::io::AsyncReadExt;
 
 pub fn hash_password(password: &str) -> String {
     let password = password.as_bytes();
@@ -94,8 +97,35 @@ pub fn decode_base64(base64_str: &str) -> Result<Vec<u8>, anyhow::Error> {
     Ok(decoded)
 }
 
-pub fn encode_base64(input: &[u8]) -> Result<String, anyhow::Error> {
-    let decoded = BASE64_STANDARD.encode(input);
+pub fn encode_base64(input: &[u8]) -> String {
+    BASE64_STANDARD.encode(input)
+}
 
-    Ok(decoded)
+pub fn hash_blake3(input: &[u8]) -> String {
+    blake3::hash(input).to_string()
+}
+
+pub fn hash_md5(input: &[u8]) -> String {
+    let digest = md5::compute(input);
+    format!("{:x}", digest)
+}
+
+pub async fn hash_file_md5(path: &Path) -> String {
+    let mut context = md5::Context::new();
+    let mut file = tokio::fs::File::open(path).await.unwrap();
+    let mut buffer = vec![0; 8192];
+
+    loop {
+        let bytes_read = file.read(&mut buffer).await.unwrap();
+
+        if bytes_read == 0 {
+            break;
+        }
+
+        context.write(&buffer[..bytes_read]).unwrap();
+    }
+
+    let digest = context.finalize();
+
+    format!("{:x}", digest)
 }

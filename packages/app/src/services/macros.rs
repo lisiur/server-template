@@ -1,42 +1,49 @@
 #[macro_export]
 macro_rules! impl_service {
-    ($struct_name:ident, $conn_type:ty) => {
+    ($struct_name:ident) => {
         pub struct $struct_name {
-            conn: $conn_type,
+            app: crate::App,
+            conn: sea_orm::DatabaseConnection,
         }
 
         impl $struct_name {
-            pub fn new(conn: $conn_type) -> Self {
-                Self { conn }
+            pub fn new(app: crate::App) -> Self {
+                let conn = app.conn.clone();
+                Self { app, conn }
             }
         }
 
-        impl From<$conn_type> for $struct_name {
-            fn from(conn: $conn_type) -> Self {
-                Self::new(conn)
+        impl From<crate::App> for $struct_name {
+            fn from(app: crate::App) -> Self {
+                Self::new(app)
             }
         }
     };
 
-    ($struct_name:ident, $conn_type:ty, $entity:ty) => {
+    ($struct_name:ident, $entity:ty) => {
         pub struct $struct_name {
-            conn: $conn_type,
             #[allow(dead_code)]
-            crud: crate::services::crud::Crud<$entity>,
+            app: crate::App,
+            #[allow(dead_code)]
+            conn: sea_orm::DatabaseConnection,
+            #[allow(dead_code)]
+            pub(crate) crud: crate::services::crud::Crud<$entity>,
         }
 
         impl $struct_name {
-            pub fn new(conn: $conn_type) -> Self {
+            pub fn new(app: crate::App) -> Self {
+                let conn = app.conn.clone();
                 Self {
+                    app,
                     conn: conn.clone(),
                     crud: crate::services::crud::Crud::new(conn),
                 }
             }
         }
 
-        impl From<$conn_type> for $struct_name {
-            fn from(conn: $conn_type) -> Self {
-                Self::new(conn)
+        impl From<crate::App> for $struct_name {
+            fn from(app: crate::App) -> Self {
+                Self::new(app)
             }
         }
     };

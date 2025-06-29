@@ -17,6 +17,15 @@ pub enum Gender {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, EnumString, Display, ToSchema)]
 #[serde(rename_all = "camelCase")]
 #[strum(serialize_all = "snake_case")]
+pub enum UploadStatus {
+    Uploading,
+    Uploaded,
+    Merged,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, EnumString, Display, ToSchema)]
+#[serde(rename_all = "camelCase")]
+#[strum(serialize_all = "snake_case")]
 pub enum PermissionKind {
     Menu,
     Operation,

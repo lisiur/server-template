@@ -1,7 +1,6 @@
 use app::services::auth::AuthService;
-use axum::{Extension, Json, extract::Query};
+use axum::{Json, extract::Query};
 use axum_extra::{TypedHeader, extract::cookie::Cookie, headers::UserAgent};
-use sea_orm::DatabaseConnection;
 use shared::enums::OperationPermission;
 use time::Duration;
 use utoipa::OpenApi;
@@ -137,10 +136,9 @@ pub async fn login(
     )
 )]
 pub async fn logout(
-    Extension(conn): Extension<DatabaseConnection>,
     auth_session: Session,
+    auth_service: AppService<AuthService>,
 ) -> ServerResult<ApiResponse> {
-    let auth_service = AuthService::new(conn);
     auth_service.logout(auth_session.session_id).await?;
 
     let mut cookie = Cookie::new(SESSION_ID_KEY, "");

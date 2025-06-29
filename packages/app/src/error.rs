@@ -8,6 +8,9 @@ pub enum AppError {
     #[error("AppException::{0}")]
     Exception(#[from] AppException),
 
+    #[error("IOError::{0}")]
+    IO(#[from] std::io::Error),
+
     #[error("DatabaseError::{0}")]
     Db(#[from] DbErr),
 
@@ -22,8 +25,12 @@ pub enum AppError {
 pub enum AppException {
     RoleNotFound,
     UserNotFound,
+    AlreadyExists,
     AuthenticationFailed,
     InvalidCredentials,
+    UploadNotFound,
+    UploadChunkIncomplete,
+    FileHashMismatch,
     DepartmentNotFound,
     UserGroupNotFound,
     RoleGroupNotFound,

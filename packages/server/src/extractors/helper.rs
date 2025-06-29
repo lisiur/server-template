@@ -37,7 +37,7 @@ impl Helper {
     #[allow(dead_code)]
     pub fn sign_rsa(&self, plaintext: &str) -> ServerResult<String> {
         let ciphertext = utils::sign_rsa(&self.private_key, plaintext.as_bytes())?;
-        let ciphertext_base64 = utils::encode_base64(&ciphertext)?;
+        let ciphertext_base64 = utils::encode_base64(&ciphertext);
         Ok(ciphertext_base64)
     }
 
@@ -58,7 +58,7 @@ impl Helper {
     #[allow(dead_code)]
     pub fn encrypt_rsa(&self, plaintext: &str) -> ServerResult<String> {
         let ciphertext = utils::encrypt_rsa(&self.public_key, plaintext.as_bytes())?;
-        let ciphertext_base64 = utils::encode_base64(&ciphertext)?;
+        let ciphertext_base64 = utils::encode_base64(&ciphertext);
 
         Ok(ciphertext_base64)
     }

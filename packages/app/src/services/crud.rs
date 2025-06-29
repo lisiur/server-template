@@ -1,7 +1,5 @@
-use migration::{Alias, ConditionExpression, IntoCondition, SimpleExpr};
-use sea_orm::{
-    Condition, IntoActiveModel, QueryOrder, QuerySelect, QueryTrait, prelude::*, sea_query,
-};
+use migration::{Alias, IntoCondition, SimpleExpr};
+use sea_orm::{IntoActiveModel, QueryOrder, QuerySelect, QueryTrait, prelude::*, sea_query};
 use std::marker::PhantomData;
 
 use crate::utils::query::{Cursor, QueryCondition};
@@ -78,10 +76,10 @@ where
         &self,
         condition: impl Into<QueryCondition>,
     ) -> Result<(Vec<<T as EntityTrait>::Model>, i64), DbErr> {
-        let condition = condition.into();
-        let count_condition: QueryCondition = condition.clone();
+        let query_condition: QueryCondition = condition.into();
+        let count_condition: QueryCondition = query_condition.clone();
         let count = self.count_by_condition(count_condition).await?;
-        let select_query = Self::find_condition_to_select(condition);
+        let select_query = Self::find_condition_to_select(query_condition);
         let res = select_query.all(&self.db).await?;
         Ok((res, count))
     }
@@ -90,17 +88,17 @@ where
         &self,
         condition: impl Into<QueryCondition>,
     ) -> Result<Vec<<T as EntityTrait>::Model>, DbErr> {
-        let select_query = Self::find_condition_to_select(condition.into());
+        let query_condition = condition.into();
+        let select_query = Self::find_condition_to_select(query_condition);
         let res = select_query.all(&self.db).await?;
         Ok(res)
     }
 
     pub async fn find_one_by_condition(
         &self,
-        condition: impl Into<ConditionExpression>,
+        condition: impl Into<QueryCondition>,
     ) -> Result<Option<<T as EntityTrait>::Model>, DbErr> {
-        let query_condition =
-            QueryCondition::default().with_condition(Condition::all().add(condition.into()));
+        let query_condition = condition.into();
         let select_query = Self::find_condition_to_select(query_condition);
         let res = select_query.one(&self.db).await?;
         Ok(res)

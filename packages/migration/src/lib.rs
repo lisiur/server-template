@@ -32,6 +32,8 @@ mod m028_create_table_third_users;
 mod m029_create_table_applications;
 mod m030_create_table_menus;
 mod m031_create_table_codes;
+mod m032_create_table_uploads;
+mod m033_create_table_upload_chunks;
 mod m099_seeding_data_init;
 mod m100_create_table_account_books;
 mod m101_create_table_categories;
@@ -82,6 +84,8 @@ impl MigratorTrait for Migrator {
             Box::new(m029_create_table_applications::Migration),
             Box::new(m030_create_table_menus::Migration),
             Box::new(m031_create_table_codes::Migration),
+            Box::new(m032_create_table_uploads::Migration),
+            Box::new(m033_create_table_upload_chunks::Migration),
             Box::new(m099_seeding_data_init::Migration),
             Box::new(m100_create_table_account_books::Migration),
             Box::new(m101_create_table_categories::Migration),

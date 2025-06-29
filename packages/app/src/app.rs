@@ -1,18 +1,25 @@
+use std::{path::PathBuf, sync::Arc};
+
 use migration::{Migrator, MigratorTrait};
 use sea_orm::DatabaseConnection;
 
 use crate::result::AppResult;
 
+#[derive(Clone)]
 pub struct App {
     #[allow(dead_code)]
-    db_conn: DatabaseConnection,
+    pub conn: DatabaseConnection,
+    pub upload_dir: Arc<PathBuf>,
 }
 
 impl App {
-    pub async fn init(db_conn: DatabaseConnection) -> AppResult<Self> {
-        Migrator::up(&db_conn, None).await?;
+    pub async fn init(conn: DatabaseConnection, upload_dir: PathBuf) -> AppResult<Self> {
+        Migrator::up(&conn, None).await?;
 
-        let app = Self { db_conn };
+        let app = Self {
+            conn,
+            upload_dir: Arc::new(upload_dir),
+        };
 
         Ok(app)
     }

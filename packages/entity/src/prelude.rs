@@ -38,5 +38,7 @@ pub use super::settings::Entity as Settings;
 pub use super::tags::Entity as Tags;
 pub use super::third_users::Entity as ThirdUsers;
 pub use super::transactions::Entity as Transactions;
+pub use super::upload_chunks::Entity as UploadChunks;
+pub use super::uploads::Entity as Uploads;
 pub use super::user_groups::Entity as UserGroups;
 pub use super::users::Entity as Users;

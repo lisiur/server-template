@@ -1,12 +1,11 @@
 use app::services::permission::PermissionService;
-use axum::{Extension, Json};
-use sea_orm::DatabaseConnection;
+use axum::Json;
 use shared::enums::OperationPermission;
 use utoipa::OpenApi;
 
 use crate::{
     dto::PageableQueryDto,
-    extractors::session::Session,
+    extractors::{app_service::AppService, session::Session},
     init_router,
     response::{ApiResponse, Null, PaginatedData, ResponseJson, ResponseJsonNull},
     result::ServerResult,
@@ -45,12 +44,10 @@ init_router!(
 )]
 pub async fn query_permissions_by_page(
     session: Session,
-    Extension(conn): Extension<DatabaseConnection>,
+    permission_service: AppService<PermissionService>,
     Json(params): Json<PageableQueryDto<FilterPermissionsDto>>,
 ) -> ServerResult<ApiResponse> {
     session.assert_has_permission(OperationPermission::QueryPermissions)?;
-
-    let permission_service = PermissionService::new(conn);
 
     let (records, total) = permission_service
         .query_permissions_by_page(params.into())
@@ -77,12 +74,10 @@ pub async fn query_permissions_by_page(
 )]
 pub async fn create_permission(
     session: Session,
-    Extension(conn): Extension<DatabaseConnection>,
+    permission_service: AppService<PermissionService>,
     Json(params): Json<CreatePermissionDto>,
 ) -> ServerResult<ApiResponse> {
     session.assert_has_permission(OperationPermission::CreatePermission)?;
-
-    let permission_service = PermissionService::new(conn);
 
     let user_id = permission_service.create_permission(params.into()).await?;
 
@@ -102,12 +97,10 @@ pub async fn create_permission(
 )]
 pub async fn delete_permissions(
     session: Session,
-    Extension(conn): Extension<DatabaseConnection>,
+    permission_service: AppService<PermissionService>,
     Json(params): Json<DeletePermissionsRequestDto>,
 ) -> ServerResult<ApiResponse> {
     session.assert_has_permission(OperationPermission::DeletePermission)?;
-
-    let permission_service = PermissionService::new(conn);
 
     permission_service.delete_permissions(params.into()).await?;
 
@@ -127,12 +120,11 @@ pub async fn delete_permissions(
 )]
 pub async fn update_permission(
     session: Session,
-    Extension(conn): Extension<DatabaseConnection>,
+    permission_service: AppService<PermissionService>,
     Json(params): Json<UpdatePermissionRequestDto>,
 ) -> ServerResult<ApiResponse> {
     session.assert_has_permission(OperationPermission::UpdateGroup)?;
 
-    let group_service = PermissionService::new(conn);
-    group_service.update_permission(params.into()).await?;
+    permission_service.update_permission(params.into()).await?;
     Ok(ApiResponse::null())
 }

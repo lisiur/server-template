@@ -40,5 +40,7 @@ pub mod settings;
 pub mod tags;
 pub mod third_users;
 pub mod transactions;
+pub mod upload_chunks;
+pub mod uploads;
 pub mod user_groups;
 pub mod users;
