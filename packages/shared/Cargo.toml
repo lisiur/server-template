@@ -16,3 +16,4 @@ utoipa = { workspace = true }
 sha2 = { workspace = true }
 md5 = { workspace = true }
 tokio = { workspace = true }
+urlencoding = { workspace = true }

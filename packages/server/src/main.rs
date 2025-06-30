@@ -68,8 +68,13 @@ async fn main() -> ServerResult<()> {
     // Init uploader folder
     println!("Init upload directory");
     let upload_dir = setting.upload_dir.as_path();
+    let upload_dir = if upload_dir.is_absolute() {
+        upload_dir.to_path_buf()
+    } else {
+        std::env::current_dir()?.join(upload_dir)
+    };
     if !upload_dir.exists() {
-        std::fs::create_dir_all(upload_dir)?;
+        std::fs::create_dir_all(&upload_dir)?;
     }
 
     // Connect database

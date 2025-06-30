@@ -101,6 +101,14 @@ pub fn encode_base64(input: &[u8]) -> String {
     BASE64_STANDARD.encode(input)
 }
 
+pub fn decode_url(input: &str) -> Result<String, anyhow::Error> {
+    Ok(urlencoding::decode(input)?.to_string())
+}
+
+pub fn encode_url(input: &str) -> String {
+    urlencoding::encode(input).to_string()
+}
+
 pub fn hash_blake3(input: &[u8]) -> String {
     blake3::hash(input).to_string()
 }

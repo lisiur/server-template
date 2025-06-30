@@ -9,6 +9,7 @@ pub struct Migration;
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         TableManager::new(manager, UploadChunks::Table)
+            .primary_key(vec![UploadChunks::UploadId, UploadChunks::Index])
             .create_table(
                 Table::create()
                     .col(uuid(UploadChunks::Id))

@@ -1,13 +1,18 @@
 use axum::{
+    BoxError,
     body::Body,
     response::{IntoResponse, Response},
 };
 use axum_extra::extract::cookie::Cookie;
+use bytes::Bytes;
+use futures_core::TryStream;
 use http::{
     HeaderMap, HeaderValue, StatusCode,
     header::{IntoHeaderName, SET_COOKIE},
 };
 use serde::Serialize;
+use tokio::io::AsyncRead;
+use tokio_util::io::ReaderStream;
 use utoipa::ToSchema;
 
 #[derive(ToSchema)]
@@ -55,6 +60,13 @@ impl ApiResponse {
         response
     }
 
+    pub fn stream<S: AsyncRead + Send + Sync + 'static>(stream: S) -> Self {
+        let mut response = Self::default();
+        let stream = ReaderStream::new(stream);
+        response.set_body_stream(stream);
+        response
+    }
+
     #[allow(unused)]
     pub fn text(data: String) -> Self {
         let mut response = Self::default();
@@ -92,6 +104,17 @@ impl ApiResponse {
                 .unwrap()
                 .into(),
         );
+        self
+    }
+
+    pub fn set_body_stream<S>(&mut self, body: S) -> &mut Self
+    where
+        S: TryStream + Send + 'static,
+        S::Ok: Into<Bytes>,
+        S::Error: Into<BoxError>,
+    {
+        let body = Body::from_stream(body);
+        self.body = Some(body);
         self
     }
 

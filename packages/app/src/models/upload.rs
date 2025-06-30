@@ -43,7 +43,13 @@ impl From<uploads::Model> for Upload {
 }
 
 impl Upload {
-    pub fn chunk_counts(&self) -> i64 {
+    pub fn mime_type(&self) -> String {
+        mime_guess::from_path(self.name.clone())
+            .first_or_octet_stream()
+            .to_string()
+    }
+
+    pub fn chunk_count(&self) -> i64 {
         let size = self.size;
         let chunk_size = self.chunk_size as i64;
         size / chunk_size + if size % chunk_size > 0 { 1 } else { 0 }
@@ -51,7 +57,7 @@ impl Upload {
 
     pub fn chunk_path(&self, store_path: &Path, chunk_index: i32) -> PathBuf {
         let parent_dir = self.parent_dir(store_path);
-        let chunk_counts = self.chunk_counts();
+        let chunk_counts = self.chunk_count();
         let width = chunk_counts.to_string().len();
         let chunk_name = format!("{:0width$}.chunk", chunk_index, width = width);
         parent_dir.join(chunk_name)
@@ -71,6 +77,8 @@ impl Upload {
     }
     pub fn file_path(&self, store_path: &Path) -> PathBuf {
         let file_name = Self::encode_name(&self.name);
-        self.parent_dir(store_path).join(file_name)
+        let mut path = self.parent_dir(store_path).join(file_name);
+        path.set_extension(&self.extension);
+        path
     }
 }

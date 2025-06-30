@@ -20,6 +20,12 @@ pub enum ServerError {
     #[error("IOError::{0}")]
     IO(#[from] std::io::Error),
 
+    #[error("MultipartError::{0}")]
+    Multipart(#[from] axum::extract::multipart::MultipartError),
+
+    #[error("UUIDError::{0}")]
+    Uuid(#[from] uuid::Error),
+
     #[error("DatabaseError::{0}")]
     Db(#[from] DbErr),
 
@@ -39,6 +45,7 @@ impl ServerError {
             &Self::Exception(exception) => match exception.code {
                 ServerExceptionCode::Unauthorized => StatusCode::UNAUTHORIZED,
                 ServerExceptionCode::Forbidden => StatusCode::FORBIDDEN,
+                ServerExceptionCode::NotFound => StatusCode::NOT_FOUND,
                 ServerExceptionCode::InternalServerError => StatusCode::INTERNAL_SERVER_ERROR,
             },
             &Self::App(err) => match err {
@@ -79,6 +86,7 @@ pub enum ServerExceptionCode {
     Unauthorized,
     Forbidden,
     InternalServerError,
+    NotFound,
 }
 
 impl From<ServerExceptionCode> for ServerError {

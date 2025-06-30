@@ -40,6 +40,22 @@ where
         Ok(res)
     }
 
+    // pub async fn create_or_update(
+    //     &self,
+    //     model: impl Into<<T as EntityTrait>::ActiveModel> + Send + Sync,
+    // ) -> Result<<T as EntityTrait>::Model, DbErr> {
+    //     let active_model: <T as EntityTrait>::ActiveModel = model.into();
+    //     let primary_key = active_model.get_primary_key_value();
+    //     let res = match primary_key {
+    //         Some(primary_key) => {
+    //             let exist = self.find_by_id().await?;
+    //             active_model.update(&self.db).await?
+    //         }
+    //         None => active_model.insert(&self.db).await?,
+    //     };
+    //     Ok(res)
+    // }
+
     pub async fn find_by_id(
         &self,
         id: impl Into<<<T as sea_orm::EntityTrait>::PrimaryKey as PrimaryKeyTrait>::ValueType>,

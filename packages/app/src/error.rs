@@ -21,15 +21,28 @@ pub enum AppError {
     Anyhow(#[from] anyhow::Error),
 }
 
+impl AppError {
+    pub fn exception(exception: AppException) -> Self {
+        AppError::Exception(exception)
+    }
+}
+
 #[derive(Debug, Serialize)]
 pub enum AppException {
+    MissingField(String),
+    NotFound,
     RoleNotFound,
     UserNotFound,
     AlreadyExists,
+    InvalidUUID,
+    InvalidI32,
+    InvalidBytes,
     AuthenticationFailed,
     InvalidCredentials,
     UploadNotFound,
+    UploadAlreadyMerged,
     UploadChunkIncomplete,
+    UploadChunkAlreadyExists,
     FileHashMismatch,
     DepartmentNotFound,
     UserGroupNotFound,

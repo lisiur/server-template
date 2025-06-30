@@ -5,9 +5,10 @@ use sea_orm::entity::prelude::*;
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
 #[sea_orm(table_name = "upload_chunks")]
 pub struct Model {
-    #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
+    #[sea_orm(primary_key, auto_increment = false)]
     pub upload_id: Uuid,
+    #[sea_orm(primary_key, auto_increment = false)]
     pub index: i32,
     pub size: i32,
     pub is_deleted: bool,

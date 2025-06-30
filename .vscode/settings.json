@@ -16,6 +16,7 @@
     "serde",
     "sqlx",
     "thiserror",
+    "urlencoding",
     "utoipa",
     "utoipauto"
   ],
