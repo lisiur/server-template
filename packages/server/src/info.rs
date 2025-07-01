@@ -13,7 +13,7 @@ impl Display for Info {
         let settings = Settings::get();
         let debug = settings.debug.unwrap_or_default();
         let server_port = settings.server_port;
-        let server_url = format!("http://localhost:{server_port}");
+        let server_url = format!("http://localhost:{server_port}/api");
         let branch = built_info::GIT_HEAD_REF.unwrap_or_default();
         let commit = built_info::GIT_COMMIT_HASH_SHORT.unwrap_or_default();
         writeln!(

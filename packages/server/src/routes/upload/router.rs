@@ -44,7 +44,8 @@ init_router!(
     path = "/getFile",
     params(GetUploadDto),
     responses(
-        (status = OK, description = "ok", body = ResponseJson<UploadDto>)
+        (status = OK, description = "ok", content_type = "application/octet-stream", body = [u8]),
+        (status = NOT_FOUND, description = "not found"),
     )
 )]
 pub async fn get_file(

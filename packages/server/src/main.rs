@@ -7,7 +7,7 @@ use sea_orm::{Database, DatabaseConnection};
 use settings::Settings;
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::EnvFilter;
-use utoipa::OpenApi;
+use utoipa::{OpenApi, openapi::Server};
 use utoipa_scalar::{Scalar, Servable};
 
 mod api_router;
@@ -98,31 +98,36 @@ async fn main() -> ServerResult<()> {
             (path = "/roles", api = routes::role::router::ApiDoc, tags = ["Role"]),
             (path = "/permissions", api = routes::permission::router::ApiDoc, tags = ["Permission"]),
             (path = "/uploads", api = routes::upload::router::ApiDoc, tags = ["Upload"]),
-        )
+        ),
     )]
     struct ApiDoc;
+
+    let mut openapi = ApiDoc::openapi();
+    openapi.servers = Some(vec![Server::new("http://localhost:4000/api")]);
+    let openapi_json = openapi.to_json().unwrap();
 
     // Init router
     println!("Registering routes...");
     let router = Router::new()
-        .route(
-            "/health",
-            get(|| async { (axum::http::StatusCode::OK, "OK") }),
+        .nest(
+            "/api",
+            Router::new()
+                .route(
+                    "/health",
+                    get(|| async { (axum::http::StatusCode::OK, "OK") }),
+                )
+                .route("/openapi.json", get(|| async { axum::Json(openapi_json) }))
+                .merge(Scalar::with_url("/docs", openapi.clone()))
+                .nest("/auth", routes::auth::router::init())
+                .nest("/department", routes::department::router::init())
+                .nest("/groups", routes::user_group::router::init())
+                .nest("/permissions", routes::permission::router::init())
+                .nest("/roles", routes::role::router::init())
+                .nest("/session", routes::session::router::init())
+                .nest("/system", routes::system::router::init())
+                .nest("/users", routes::user::router::init())
+                .nest("/uploads", routes::upload::router::init()),
         )
-        .route(
-            "/openapi.json",
-            get(|| async { axum::Json(ApiDoc::openapi()) }),
-        )
-        .merge(Scalar::with_url("/docs", ApiDoc::openapi()))
-        .nest("/auth", routes::auth::router::init())
-        .nest("/department", routes::department::router::init())
-        .nest("/groups", routes::user_group::router::init())
-        .nest("/permissions", routes::permission::router::init())
-        .nest("/roles", routes::role::router::init())
-        .nest("/session", routes::session::router::init())
-        .nest("/system", routes::system::router::init())
-        .nest("/users", routes::user::router::init())
-        .nest("/uploads", routes::upload::router::init())
         .layer(Extension(app))
         .layer(Extension(db_conn))
         .layer(Extension(priv_key))
